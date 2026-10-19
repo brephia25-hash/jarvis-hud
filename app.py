@@ -7,7 +7,6 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Ocultar elementos de Streamlit para dejar la pantalla 100% limpia estilo HUD
 hide_streamlit_style = """
     <style>
     #MainMenu {visibility: hidden;}
@@ -82,7 +81,7 @@ hud_html = """
             <h1 id="jarvisTitle">J.A.R.V.I.S.</h1>
             <p id="jarvisStatus">ESCUCHANDO SISTEMA...</p>
         </div>
-        <div class="status-bar" id="audioStatus">MICROFONO APAGADO - HAZ CLIC PARA ACTIVAR</div>
+        <div class="status-bar" id="audioStatus">HAZ CLIC AQUÍ PARA ACTIVAR MICRÓFONO</div>
     </div>
 
     <script>
@@ -112,7 +111,6 @@ hud_html = """
             let cx = canvas.width / 2;
             let cy = canvas.height / 2;
 
-            // Anillos exteriores tecnológicos
             ctx.strokeStyle = '#0284c7';
             ctx.lineWidth = 1.5;
             ctx.beginPath();
@@ -133,7 +131,6 @@ hud_html = """
             ctx.arc(cx, cy, 160, 0, Math.PI * 2);
             ctx.stroke();
 
-            // Partículas en órbita
             particles.forEach(p => {
                 p.angle += p.speed;
                 let x = cx + Math.cos(p.angle) * p.radius;
@@ -145,7 +142,6 @@ hud_html = """
                 ctx.fill();
             });
 
-            // Núcleo central
             ctx.strokeStyle = '#22d3ee';
             ctx.lineWidth = 3;
             ctx.fillStyle = '#010c24';
@@ -159,7 +155,6 @@ hud_html = """
 
         drawHUD();
 
-        // --- SISTEMA DE VOZ Y AUDIO (HABLA Y APLAUSOS) ---
         function hablar(texto) {
             const utterance = new SpeechSynthesisUtterance(texto);
             utterance.lang = 'es-ES';
@@ -167,7 +162,7 @@ hud_html = """
             window.speechSynthesis.speak(utterance);
         }
 
-        // Reconocimiento de Voz
+        // Reconocimiento de Voz y Comandos
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (SpeechRecognition) {
             const recognition = new SpeechRecognition();
@@ -181,20 +176,28 @@ hud_html = """
                 
                 if (speechResult.includes("buenos días") || speechResult.includes("hola jarvis")) {
                     hablar("Buenos días, Señor Kion. Sistemas en línea y a su servicio.");
-                    document.getElementById('jarvisStatus').innerText = "SISTEMA ACTIVO";
+                    setTimeout(() => { document.getElementById('jarvisStatus').innerText = "SISTEMA ACTIVO"; }, 4000);
+                } else if (speechResult.includes("abrir youtube")) {
+                    hablar("Abriendo YouTube.");
+                    setTimeout(() => { window.open("https://www.youtube.com", "_blank"); }, 1000);
+                } else if (speechResult.includes("abrir notion")) {
+                    hablar("Abriendo Notion.");
+                    setTimeout(() => { window.open("https://www.notion.so", "_blank"); }, 1000);
+                } else if (speechResult.includes("abrir whatsapp")) {
+                    hablar("Abriendo WhatsApp.");
+                    setTimeout(() => { window.open("https://web.whatsapp.com", "_blank"); }, 1000);
                 }
             };
 
-            // Iniciar escucha al hacer clic en la pantalla (permiso del navegador)
             window.addEventListener('click', () => {
                 try {
                     recognition.start();
-                    document.getElementById('audioStatus').innerText = "MICRÓFONO ACTIVO - ESCUCHANDO...";
+                    document.getElementById('audioStatus').innerText = "SISTEMA DE VOZ ACTIVO";
                 } catch(e) {}
             });
         }
 
-        // Detección de Aplausos mediante el Micrófono (AudioContext)
+        // Detección de aplausos optimizada con temporizador para evitar que se quede pegado
         navigator.mediaDevices.getUserMedia({ audio: true, video: false }).then(stream => {
             const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             const analyser = audioCtx.createAnalyser();
@@ -202,25 +205,35 @@ hud_html = """
             microphone.connect(analyser);
             analyser.fftSize = 256;
             const dataArray = new Uint8Array(analyser.frequencyBinCount);
+            let bloqueadoPorAplauso = false;
 
             function detectarSonidoFuerte() {
-                analyser.getByteFrequencyData(dataArray);
-                let suma = 0;
-                for(let i = 0; i < dataArray.length; i++) {
-                    suma += dataArray[i];
-                }
-                let promedio = suma / dataArray.length;
+                if (!bloqueadoPorAplauso) {
+                    analyser.getByteFrequencyData(dataArray);
+                    let suma = 0;
+                    for(let i = 0; i < dataArray.length; i++) {
+                        suma += dataArray[i];
+                    }
+                    let promedio = suma / dataArray.length;
 
-                // Si hay un pico repentino (como un aplauso)
-                if (promedio > 55) {
-                    document.getElementById('jarvisStatus').innerText = "APLAUSO DETECTADO";
-                    hablar("Activación por aplauso recibida. Sistemas listos.");
+                    // Umbral ajustado para aplausos limpios
+                    if (promedio > 70) {
+                        bloqueadoPorAplauso = true;
+                        document.getElementById('jarvisStatus').innerText = "APLAUSO DETECTADO";
+                        hablar("Sistemas activados por aplauso.");
+                        
+                        // Libera el estado después de 3 segundos para que nunca se quede congelado
+                        setTimeout(() => {
+                            document.getElementById('jarvisStatus').innerText = "SISTEMA ACTIVO";
+                            bloqueadoPorAplauso = false;
+                        }, 3000);
+                    }
                 }
                 requestAnimationFrame(detectarSonidoFuerte);
             }
             detectarSonidoFuerte();
         }).catch(err => {
-            console.log("Permiso de micrófono requerido.");
+            console.log("Micrófono no disponible.");
         });
     </script>
 </body>
