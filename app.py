@@ -215,19 +215,19 @@ hud_html = """
                 const speechResult = event.results[event.results.length - 1][0].transcript.toLowerCase().trim();
                 document.getElementById('jarvisStatus').innerText = "COMANDO: " + speechResult.toUpperCase();
                 
-                // Activación e Inicio (Registra Despertar / Inicio de Día)
+                // Activación e Inicio
                 if (speechResult.includes("buenos días") || speechResult.includes("buenas noches") || speechResult.includes("hola jarvis")) {
                     let hora = registrarMomento('despertar');
                     hablar("Saludos. Sistemas en línea. Inicio de actividad registrado a las " + hora);
                     setTimeout(() => { document.getElementById('jarvisStatus').innerText = "SISTEMA ACTIVO"; }, 4000);
                 } 
-                // Reposo (Registra Hora de Dormir)
+                // Reposo
                 else if (speechResult.includes("descansar") || speechResult.includes("dormir")) {
                     let hora = registrarMomento('dormir');
                     hablar("Entendido. Hora de descanso registrada a las " + hora + ". Que tenga un buen descanso.");
                     setTimeout(() => { document.getElementById('jarvisStatus').innerText = "SISTEMA EN REPOSO"; }, 4000);
                 }
-                // Consultar Horarios de Sueño
+                // Consultar Horarios
                 else if (speechResult.includes("a qué hora me dormí") || speechResult.includes("cuándo descansé")) {
                     let reg = obtenerMomento('dormir');
                     if (!reg) {
@@ -244,7 +244,7 @@ hud_html = """
                         hablar("Inició actividad a las " + reg.hora + " del día " + reg.fecha);
                     }
                 }
-                // Comandos de Tareas
+                // Comandos de Tareas (Corregido y optimizado)
                 else if (speechResult.includes("agregar tarea") || speechResult.includes("añadir pendiente") || speechResult.includes("agrega la tarea")) {
                     let nuevaTarea = speechResult
                         .replace("agregar tarea", "")
@@ -266,7 +266,11 @@ hud_html = """
                         hablar("No tiene pendientes registrados en su agenda.");
                     } else {
                         document.getElementById('jarvisStatus').innerText = "LEYENDO AGENDA...";
-                        hablar("Sus pendientes actuales son: " + lista.join(", "));
+                        let textoPendientes = "Sus pendientes actuales son: ";
+                        for (let i = 0; i < lista.length; i++) {
+                            textoPendientes += "Tarea " + (i + 1) + ": " + lista[i] + ". ";
+                        }
+                        hablar(textoPendientes);
                     }
                 }
                 else if (speechResult.includes("limpiar tareas") || speechResult.includes("borrar pendientes") || speechResult.includes("borrar tareas")) {
