@@ -19,7 +19,6 @@ hide_streamlit_style = """
 """
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
-# Lógica de gestión de archivo local agenda.json
 AGENDA_FILE = "agenda.json"
 
 if not os.path.exists(AGENDA_FILE):
@@ -165,13 +164,16 @@ hud_html = """
         drawHUD();
 
         function hablar(texto) {
-            const utterance = new SpeechSynthesisUtterance(texto);
-            utterance.lang = 'es-ES';
-            utterance.rate = 1.0;
-            window.speechSynthesis.speak(utterance);
+            window.speechSynthesis.cancel();
+            setTimeout(() => {
+                const utterance = new SpeechSynthesisUtterance(texto);
+                utterance.lang = 'es-ES';
+                utterance.rate = 1.0;
+                window.speechSynthesis.speak(utterance);
+            }, 100);
         }
 
-        // Sistema de tareas guardadas en localStorage del navegador
+        // Gestión de Tareas
         function obtenerTareas() {
             return JSON.parse(localStorage.getItem('jarvis_tareas') || '[]');
         }
@@ -186,7 +188,22 @@ hud_html = """
             localStorage.removeItem('jarvis_tareas');
         }
 
-        // Reconocimiento de Voz Exclusivo para Comandos
+        // Gestión de Horarios de Sueño y Despertar
+        function registrarMomento(tipo) {
+            const ahora = new Date();
+            const horaFormateada = ahora.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const fechaFormateada = ahora.toLocaleDateString();
+            const registro = { tipo: tipo, hora: horaFormateada, fecha: fechaFormateada };
+            localStorage.setItem('jarvis_' + tipo, JSON.stringify(registro));
+            return horaFormateada;
+        }
+
+        function obtenerMomento(tipo) {
+            let data = localStorage.getItem('jarvis_' + tipo);
+            return data ? JSON.parse(data) : null;
+        }
+
+        // Reconocimiento de Voz
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (SpeechRecognition) {
             const recognition = new SpeechRecognition();
@@ -195,38 +212,66 @@ hud_html = """
             recognition.interimResults = false;
 
             recognition.onresult = function(event) {
-                const speechResult = event.results[event.results.length - 1][0].transcript.toLowerCase();
+                const speechResult = event.results[event.results.length - 1][0].transcript.toLowerCase().trim();
                 document.getElementById('jarvisStatus').innerText = "COMANDO: " + speechResult.toUpperCase();
                 
-                // Comandos del Sistema
-                if (speechResult.includes("buenos días") || speechResult.includes("hola jarvis")) {
-                    hablar("Buenos días, Señor Kion. Sistemas en línea y a su servicio.");
+                // Activación e Inicio (Registra Despertar / Inicio de Día)
+                if (speechResult.includes("buenos días") || speechResult.includes("buenas noches") || speechResult.includes("hola jarvis")) {
+                    let hora = registrarMomento('despertar');
+                    hablar("Saludos. Sistemas en línea. Inicio de actividad registrado a las " + hora);
                     setTimeout(() => { document.getElementById('jarvisStatus').innerText = "SISTEMA ACTIVO"; }, 4000);
                 } 
+                // Reposo (Registra Hora de Dormir)
                 else if (speechResult.includes("descansar") || speechResult.includes("dormir")) {
-                    hablar("Entendido. Registrando horario de descanso. Que tenga buenas noches.");
+                    let hora = registrarMomento('dormir');
+                    hablar("Entendido. Hora de descanso registrada a las " + hora + ". Que tenga un buen descanso.");
                     setTimeout(() => { document.getElementById('jarvisStatus').innerText = "SISTEMA EN REPOSO"; }, 4000);
                 }
-                // Comandos de Tareas y Pendientes
-                else if (speechResult.includes("agregar tarea") || speechResult.includes("añadir pendiente")) {
-                    let nuevaTarea = speechResult.replace("agregar tarea", "").replace("añadir pendiente", "").trim();
+                // Consultar Horarios de Sueño
+                else if (speechResult.includes("a qué hora me dormí") || speechResult.includes("cuándo descansé")) {
+                    let reg = obtenerMomento('dormir');
+                    if (!reg) {
+                        hablar("No tengo registrado un horario de descanso reciente.");
+                    } else {
+                        hablar("Se registró que se fue a descansar a las " + reg.hora + " del día " + reg.fecha);
+                    }
+                }
+                else if (speechResult.includes("a qué hora desperté") || speechResult.includes("mi hora de inicio")) {
+                    let reg = obtenerMomento('despertar');
+                    if (!reg) {
+                        hablar("No tengo registrado el inicio de su jornada reciente.");
+                    } else {
+                        hablar("Inició actividad a las " + reg.hora + " del día " + reg.fecha);
+                    }
+                }
+                // Comandos de Tareas
+                else if (speechResult.includes("agregar tarea") || speechResult.includes("añadir pendiente") || speechResult.includes("agrega la tarea")) {
+                    let nuevaTarea = speechResult
+                        .replace("agregar tarea", "")
+                        .replace("añadir pendiente", "")
+                        .replace("agrega la tarea", "")
+                        .trim();
                     if (nuevaTarea.length > 0) {
                         guardarTarea(nuevaTarea);
-                        hablar("Tarea anotada en su agenda local: " + nuevaTarea);
+                        document.getElementById('jarvisStatus').innerText = "TAREA AÑADIDA: " + nuevaTarea.toUpperCase();
+                        hablar("Tarea anotada en su agenda: " + nuevaTarea);
                     } else {
                         hablar("Por favor especifique la tarea que desea agregar.");
                     }
                 }
-                else if (speechResult.includes("mis pendientes") || speechResult.includes("mis tareas") || speechResult.includes("lee mis tareas")) {
+                else if (speechResult.includes("mis pendientes") || speechResult.includes("mis tareas") || speechResult.includes("lee mis tareas") || speechResult.includes("cuáles son mis tareas")) {
                     let lista = obtenerTareas();
                     if (lista.length === 0) {
-                        hablar("No tiene pendientes registrados en su agenda, Señor Kion.");
+                        document.getElementById('jarvisStatus').innerText = "SIN PENDIENTES";
+                        hablar("No tiene pendientes registrados en su agenda.");
                     } else {
+                        document.getElementById('jarvisStatus').innerText = "LEYENDO AGENDA...";
                         hablar("Sus pendientes actuales son: " + lista.join(", "));
                     }
                 }
-                else if (speechResult.includes("limpiar tareas") || speechResult.includes("borrar pendientes")) {
+                else if (speechResult.includes("limpiar tareas") || speechResult.includes("borrar pendientes") || speechResult.includes("borrar tareas")) {
                     limpiarTareas();
+                    document.getElementById('jarvisStatus').innerText = "AGENDA LIMPIA";
                     hablar("Agenda de tareas reiniciada con éxito.");
                 }
                 // Apertura de Plataformas
