@@ -1,39 +1,22 @@
-import datetime
-import os
-import sqlite3
 import streamlit as st
-from gtts import gTTS
 
 st.set_page_config(
-    page_title="JARVIS - HUD",
+    page_title="JARVIS",
     page_icon="💻",
-    layout="wide"
+    layout="wide",
+    initial_sidebar_state="collapsed"
 )
 
-USER_NAME = "Señor Kion"
-
-def iniciar_db():
-    conn = sqlite3.connect("jarvis_memory.db")
-    cursor = conn.cursor()
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS registro_sueno (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            fecha TEXT,
-            tipo TEXT,
-            hora TEXT
-        )
-    """)
-    conn.commit()
-    conn.close()
-
-iniciar_db()
-
-def hablar(texto):
-    try:
-        tts = gTTS(text=texto, lang="es", slow=False)
-        tts.save("respuesta.mp3")
-    except Exception:
-        pass
+# Ocultar elementos de Streamlit para dejar la pantalla 100% limpia estilo HUD
+hide_streamlit_style = """
+    <style>
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+    .stApp { background-color: #010816; overflow: hidden; }
+    </style>
+"""
+st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
 hud_html = """
 <!DOCTYPE html>
@@ -53,16 +36,14 @@ hud_html = """
         }
         .hud-container {
             position: relative;
-            width: 600px;
-            height: 600px;
+            width: 100vw;
+            height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
         }
         canvas {
             position: absolute;
-            top: 0;
-            left: 0;
         }
         .core-text {
             position: absolute;
@@ -73,87 +54,86 @@ hud_html = """
         }
         .core-text h1 {
             margin: 0;
-            font-size: 24px;
-            letter-spacing: 3px;
+            font-size: 32px;
+            letter-spacing: 4px;
             color: #22d3ee;
-            text-shadow: 0 0 10px rgba(34, 211, 238, 0.8);
+            text-shadow: 0 0 15px rgba(34, 211, 238, 0.9);
         }
         .core-text p {
-            margin: 5px 0 0 0;
-            font-size: 10px;
+            margin: 8px 0 0 0;
+            font-size: 12px;
             color: #38bdf8;
+            letter-spacing: 3px;
+        }
+        .status-bar {
+            position: absolute;
+            bottom: 30px;
+            color: #0ea5e9;
+            font-size: 11px;
             letter-spacing: 2px;
+            text-transform: uppercase;
         }
     </style>
 </head>
 <body>
     <div class="hud-container">
-        <canvas id="hudCanvas" width="600" height="600"></canvas>
+        <canvas id="hudCanvas"></canvas>
         <div class="core-text">
-            <h1>J.A.R.V.I.S.</h1>
-            <p>SISTEMA ACTIVO</p>
+            <h1 id="jarvisTitle">J.A.R.V.I.S.</h1>
+            <p id="jarvisStatus">ESCUCHANDO SISTEMA...</p>
         </div>
+        <div class="status-bar" id="audioStatus">MICROFONO APAGADO - HAZ CLIC PARA ACTIVAR</div>
     </div>
 
     <script>
         const canvas = document.getElementById('hudCanvas');
         const ctx = canvas.getContext('2d');
         
-        const cx = 300;
-        const cy = 300;
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
 
         let particles = [];
-        for(let i = 0; i < 35; i++) {
+        for(let i = 0; i < 50; i++) {
             particles.push({
                 angle: Math.random() * Math.PI * 2,
-                radius: 110 + Math.random() * 60,
-                speed: 0.015 + Math.random() * 0.02,
+                radius: 130 + Math.random() * 80,
+                speed: 0.01 + Math.random() * 0.02,
                 size: 1.5 + Math.random() * 2,
-                opacity: 0.5 + Math.random() * 0.5
+                opacity: 0.4 + Math.random() * 0.6
             });
         }
 
         function drawHUD() {
-            ctx.clearRect(0, 0, 600, 600);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            let cx = canvas.width / 2;
+            let cy = canvas.height / 2;
 
-            ctx.strokeStyle = '#0284c7';
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            ctx.moveTo(20, 150); ctx.lineTo(120, 150); ctx.lineTo(160, 190);
-            ctx.moveTo(580, 150); ctx.lineTo(480, 150); ctx.lineTo(440, 190);
-            ctx.moveTo(40, 450); ctx.lineTo(140, 450); ctx.lineTo(180, 410);
-            ctx.moveTo(560, 450); ctx.lineTo(460, 450); ctx.lineTo(420, 410);
-            ctx.stroke();
-
-            ctx.fillStyle = '#38bdf8';
-            ctx.fillRect(18, 147, 6, 6);
-            ctx.fillRect(576, 147, 6, 6);
-
+            // Anillos exteriores tecnológicos
             ctx.strokeStyle = '#0284c7';
             ctx.lineWidth = 1.5;
             ctx.beginPath();
-            ctx.arc(cx, cy, 220, 0, Math.PI * 2);
+            ctx.arc(cx, cy, 240, 0, Math.PI * 2);
             ctx.stroke();
 
             ctx.strokeStyle = '#38bdf8';
             ctx.lineWidth = 3;
-            ctx.setLineDash([8, 6]);
+            ctx.setLineDash([10, 8]);
             ctx.beginPath();
-            ctx.arc(cx, cy, 180, 0, Math.PI * 2);
+            ctx.arc(cx, cy, 200, 0, Math.PI * 2);
             ctx.stroke();
             ctx.setLineDash([]);
 
             ctx.strokeStyle = '#0ea5e9';
             ctx.lineWidth = 1;
             ctx.beginPath();
-            ctx.arc(cx, cy, 140, 0, Math.PI * 2);
+            ctx.arc(cx, cy, 160, 0, Math.PI * 2);
             ctx.stroke();
 
-            ctx.font = '9px Consolas';
-            ctx.fillStyle = '#38bdf8';
-            ctx.fillText("0000000000000000", 215, 115);
-            ctx.fillText("0000000000000000", 215, 495);
-
+            // Partículas en órbita
             particles.forEach(p => {
                 p.angle += p.speed;
                 let x = cx + Math.cos(p.angle) * p.radius;
@@ -165,11 +145,12 @@ hud_html = """
                 ctx.fill();
             });
 
+            // Núcleo central
             ctx.strokeStyle = '#22d3ee';
             ctx.lineWidth = 3;
             ctx.fillStyle = '#010c24';
             ctx.beginPath();
-            ctx.arc(cx, cy, 70, 0, Math.PI * 2);
+            ctx.arc(cx, cy, 85, 0, Math.PI * 2);
             ctx.fill();
             ctx.stroke();
 
@@ -177,58 +158,74 @@ hud_html = """
         }
 
         drawHUD();
+
+        // --- SISTEMA DE VOZ Y AUDIO (HABLA Y APLAUSOS) ---
+        function hablar(texto) {
+            const utterance = new SpeechSynthesisUtterance(texto);
+            utterance.lang = 'es-ES';
+            utterance.rate = 1.0;
+            window.speechSynthesis.speak(utterance);
+        }
+
+        // Reconocimiento de Voz
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (SpeechRecognition) {
+            const recognition = new SpeechRecognition();
+            recognition.lang = 'es-ES';
+            recognition.continuous = true;
+            recognition.interimResults = false;
+
+            recognition.onresult = function(event) {
+                const speechResult = event.results[event.results.length - 1][0].transcript.toLowerCase();
+                document.getElementById('jarvisStatus').innerText = "COMANDO: " + speechResult.toUpperCase();
+                
+                if (speechResult.includes("buenos días") || speechResult.includes("hola jarvis")) {
+                    hablar("Buenos días, Señor Kion. Sistemas en línea y a su servicio.");
+                    document.getElementById('jarvisStatus').innerText = "SISTEMA ACTIVO";
+                }
+            };
+
+            // Iniciar escucha al hacer clic en la pantalla (permiso del navegador)
+            window.addEventListener('click', () => {
+                try {
+                    recognition.start();
+                    document.getElementById('audioStatus').innerText = "MICRÓFONO ACTIVO - ESCUCHANDO...";
+                } catch(e) {}
+            });
+        }
+
+        // Detección de Aplausos mediante el Micrófono (AudioContext)
+        navigator.mediaDevices.getUserMedia({ audio: true, video: false }).then(stream => {
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const analyser = audioCtx.createAnalyser();
+            const microphone = audioCtx.createMediaStreamSource(stream);
+            microphone.connect(analyser);
+            analyser.fftSize = 256;
+            const dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+            function detectarSonidoFuerte() {
+                analyser.getByteFrequencyData(dataArray);
+                let suma = 0;
+                for(let i = 0; i < dataArray.length; i++) {
+                    suma += dataArray[i];
+                }
+                let promedio = suma / dataArray.length;
+
+                // Si hay un pico repentino (como un aplauso)
+                if (promedio > 55) {
+                    document.getElementById('jarvisStatus').innerText = "APLAUSO DETECTADO";
+                    hablar("Activación por aplauso recibida. Sistemas listos.");
+                }
+                requestAnimationFrame(detectarSonidoFuerte);
+            }
+            detectarSonidoFuerte();
+        }).catch(err => {
+            console.log("Permiso de micrófono requerido.");
+        });
     </script>
 </body>
 </html>
 """
 
 import streamlit.components.v1 as components
-components.html(hud_html, height=620)
-
-st.markdown("<h3 style='text-align: center; color: #22d3ee;'>PANEL DE COMANDOS</h3>", unsafe_allow_html=True)
-
-col1, col2, col3 = st.columns(3)
-
-with col1:
-    if st.button("Registrar Despertar", use_container_width=True):
-        ahora = datetime.datetime.now()
-        conn = sqlite3.connect("jarvis_memory.db")
-        cursor = conn.cursor()
-        cursor.execute("INSERT INTO registro_sueno (fecha, tipo, hora) VALUES (?, ?, ?)", (ahora.strftime("%Y-%m-%d"), "despertar", ahora.strftime("%H:%M:%S")))
-        conn.commit()
-        conn.close()
-        st.success(f"Despertar registrado a las {ahora.strftime('%H:%M:%S')}.")
-        hablar("Despertar registrado con exito.")
-
-with col2:
-    if st.button("Registrar Dormir", use_container_width=True):
-        ahora = datetime.datetime.now()
-        conn = sqlite3.connect("jarvis_memory.db")
-        cursor = conn.cursor()
-        cursor.execute("INSERT INTO registro_sueno (fecha, tipo, hora) VALUES (?, ?, ?)", (ahora.strftime("%Y-%m-%d"), "dormir", ahora.strftime("%H:%M:%S")))
-        conn.commit()
-        conn.close()
-        st.info("Horario de descanso guardado.")
-        hablar("Buenas noches.")
-
-with col3:
-    if st.button("Simular Activacion por Voz/Aplauso", use_container_width=True):
-        st.balloons()
-        st.success("JARVIS activado correctamente.")
-        hablar("Sistemas en linea. A su servicio.")
-
-st.markdown("<h4 style='color: #0ea5e9;'>ACCESOS DIRECTOS</h4>", unsafe_allow_html=True)
-b1, b2, b3, b4 = st.columns(4)
-
-with b1:
-    if st.button("YouTube"):
-        st.markdown('<meta http-equiv="refresh" content="0;url=https://www.youtube.com">', unsafe_allow_html=True)
-with b2:
-    if st.button("Notion"):
-        st.markdown('<meta http-equiv="refresh" content="0;url=https://www.notion.so">', unsafe_allow_html=True)
-with b3:
-    if st.button("WhatsApp"):
-        st.markdown('<meta http-equiv="refresh" content="0;url=https://web.whatsapp.com">', unsafe_allow_html=True)
-with b4:
-    if st.button("Gemini"):
-        st.markdown('<meta http-equiv="refresh" content="0;url=https://gemini.google.com">', unsafe_allow_html=True)
+components.html(hud_html, height=850, scrolling=False)
