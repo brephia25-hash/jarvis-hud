@@ -1,4 +1,6 @@
 import streamlit as st
+import json
+import os
 
 st.set_page_config(
     page_title="JARVIS",
@@ -16,6 +18,13 @@ hide_streamlit_style = """
     </style>
 """
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
+
+# Lógica de gestión de archivo local agenda.json
+AGENDA_FILE = "agenda.json"
+
+if not os.path.exists(AGENDA_FILE):
+    with open(AGENDA_FILE, "w", encoding="utf-8") as f:
+        json.dump([], f)
 
 hud_html = """
 <!DOCTYPE html>
@@ -162,7 +171,22 @@ hud_html = """
             window.speechSynthesis.speak(utterance);
         }
 
-        // Reconocimiento de Voz y Comandos
+        // Sistema de tareas guardadas en localStorage del navegador
+        function obtenerTareas() {
+            return JSON.parse(localStorage.getItem('jarvis_tareas') || '[]');
+        }
+
+        function guardarTarea(tarea) {
+            let tareas = obtenerTareas();
+            tareas.push(tarea);
+            localStorage.setItem('jarvis_tareas', JSON.stringify(tareas));
+        }
+
+        function limpiarTareas() {
+            localStorage.removeItem('jarvis_tareas');
+        }
+
+        // Reconocimiento de Voz
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (SpeechRecognition) {
             const recognition = new SpeechRecognition();
@@ -174,18 +198,65 @@ hud_html = """
                 const speechResult = event.results[event.results.length - 1][0].transcript.toLowerCase();
                 document.getElementById('jarvisStatus').innerText = "COMANDO: " + speechResult.toUpperCase();
                 
+                // Comandos del Sistema
                 if (speechResult.includes("buenos días") || speechResult.includes("hola jarvis")) {
                     hablar("Buenos días, Señor Kion. Sistemas en línea y a su servicio.");
                     setTimeout(() => { document.getElementById('jarvisStatus').innerText = "SISTEMA ACTIVO"; }, 4000);
-                } else if (speechResult.includes("abrir youtube")) {
+                } 
+                else if (speechResult.includes("descansar") || speechResult.includes("dormir")) {
+                    hablar("Entendido. Registrando horario de descanso. Que tenga buenas noches.");
+                    setTimeout(() => { document.getElementById('jarvisStatus').innerText = "SISTEMA EN REPOSO"; }, 4000);
+                }
+                // Comandos de Tareas y Pendientes
+                else if (speechResult.includes("agregar tarea") || speechResult.includes("añadir pendiente")) {
+                    let nuevaTarea = speechResult.replace("agregar tarea", "").replace("añadir pendiente", "").trim();
+                    if (nuevaTarea.length > 0) {
+                        guardarTarea(nuevaTarea);
+                        hablar("Tarea anotada en su agenda local: " + nuevaTarea);
+                    } else {
+                        hablar("Por favor especifique la tarea que desea agregar.");
+                    }
+                }
+                else if (speechResult.includes("mis pendientes") || speechResult.includes("mis tareas") || speechResult.includes("lee mis tareas")) {
+                    let lista = obtenerTareas();
+                    if (lista.length === 0) {
+                        hablar("No tiene pendientes registrados en su agenda, Señor Kion.");
+                    } else {
+                        hablar("Sus pendientes actuales son: " + lista.join(", "));
+                    }
+                }
+                else if (speechResult.includes("limpiar tareas") || speechResult.includes("borrar pendientes")) {
+                    limpiarTareas();
+                    hablar("Agenda de tareas reiniciada con éxito.");
+                }
+                // Apertura de Plataformas
+                else if (speechResult.includes("youtube")) {
                     hablar("Abriendo YouTube.");
                     setTimeout(() => { window.open("https://www.youtube.com", "_blank"); }, 1000);
-                } else if (speechResult.includes("abrir notion")) {
+                }
+                else if (speechResult.includes("notion")) {
                     hablar("Abriendo Notion.");
                     setTimeout(() => { window.open("https://www.notion.so", "_blank"); }, 1000);
-                } else if (speechResult.includes("abrir whatsapp")) {
-                    hablar("Abriendo WhatsApp.");
+                }
+                else if (speechResult.includes("calendario")) {
+                    hablar("Abriendo Calendario.");
+                    setTimeout(() => { window.open("https://calendar.google.com", "_blank"); }, 1000);
+                }
+                else if (speechResult.includes("canva")) {
+                    hablar("Abriendo Canva.");
+                    setTimeout(() => { window.open("https://www.canva.com", "_blank"); }, 1000);
+                }
+                else if (speechResult.includes("whatsapp")) {
+                    hablar("Abriendo WhatsApp Web.");
                     setTimeout(() => { window.open("https://web.whatsapp.com", "_blank"); }, 1000);
+                }
+                else if (speechResult.includes("gemini")) {
+                    hablar("Abriendo Gemini.");
+                    setTimeout(() => { window.open("https://gemini.google.com", "_blank"); }, 1000);
+                }
+                else if (speechResult.includes("temporizador")) {
+                    hablar("Abriendo temporizador de Google.");
+                    setTimeout(() => { window.open("https://www.google.com/search?q=temporizador", "_blank"); }, 1000);
                 }
             };
 
@@ -197,7 +268,7 @@ hud_html = """
             });
         }
 
-        // Detección de aplausos optimizada con temporizador para evitar que se quede pegado
+        // Detector de aplausos
         navigator.mediaDevices.getUserMedia({ audio: true, video: false }).then(stream => {
             const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             const analyser = audioCtx.createAnalyser();
@@ -216,13 +287,11 @@ hud_html = """
                     }
                     let promedio = suma / dataArray.length;
 
-                    // Umbral ajustado para aplausos limpios
                     if (promedio > 70) {
                         bloqueadoPorAplauso = true;
                         document.getElementById('jarvisStatus').innerText = "APLAUSO DETECTADO";
                         hablar("Sistemas activados por aplauso.");
                         
-                        // Libera el estado después de 3 segundos para que nunca se quede congelado
                         setTimeout(() => {
                             document.getElementById('jarvisStatus').innerText = "SISTEMA ACTIVO";
                             bloqueadoPorAplauso = false;
