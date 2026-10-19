@@ -186,7 +186,7 @@ hud_html = """
             localStorage.removeItem('jarvis_tareas');
         }
 
-        // Reconocimiento de Voz
+        // Reconocimiento de Voz Exclusivo para Comandos
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (SpeechRecognition) {
             const recognition = new SpeechRecognition();
@@ -267,43 +267,6 @@ hud_html = """
                 } catch(e) {}
             });
         }
-
-        // Detector de aplausos
-        navigator.mediaDevices.getUserMedia({ audio: true, video: false }).then(stream => {
-            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            const analyser = audioCtx.createAnalyser();
-            const microphone = audioCtx.createMediaStreamSource(stream);
-            microphone.connect(analyser);
-            analyser.fftSize = 256;
-            const dataArray = new Uint8Array(analyser.frequencyBinCount);
-            let bloqueadoPorAplauso = false;
-
-            function detectarSonidoFuerte() {
-                if (!bloqueadoPorAplauso) {
-                    analyser.getByteFrequencyData(dataArray);
-                    let suma = 0;
-                    for(let i = 0; i < dataArray.length; i++) {
-                        suma += dataArray[i];
-                    }
-                    let promedio = suma / dataArray.length;
-
-                    if (promedio > 70) {
-                        bloqueadoPorAplauso = true;
-                        document.getElementById('jarvisStatus').innerText = "APLAUSO DETECTADO";
-                        hablar("Sistemas activados por aplauso.");
-                        
-                        setTimeout(() => {
-                            document.getElementById('jarvisStatus').innerText = "SISTEMA ACTIVO";
-                            bloqueadoPorAplauso = false;
-                        }, 3000);
-                    }
-                }
-                requestAnimationFrame(detectarSonidoFuerte);
-            }
-            detectarSonidoFuerte();
-        }).catch(err => {
-            console.log("Micrófono no disponible.");
-        });
     </script>
 </body>
 </html>
