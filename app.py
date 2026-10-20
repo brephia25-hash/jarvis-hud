@@ -149,24 +149,16 @@ hud_html = """
         let timerInterval = null;
         let tiempoRestanteSegundos = 0;
 
-        // Dibujar fondo de placa ciberespacial tenue (PCB Background)
         function drawBackgroundGrid() {
             ctx.save();
             ctx.strokeStyle = theme.dimLine;
             ctx.lineWidth = 1;
 
-            // Rejilla de pistas verticales y horizontales finas
             for(let x = 0; x < canvas.width; x += 40) {
-                ctx.beginPath();
-                ctx.moveTo(x, 0);
-                ctx.lineTo(x, canvas.height);
-                ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
             }
             for(let y = 0; y < canvas.height; y += 40) {
-                ctx.beginPath();
-                ctx.moveTo(0, y);
-                ctx.lineTo(canvas.width, y);
-                ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
             }
             ctx.restore();
         }
@@ -201,7 +193,6 @@ hud_html = """
             ctx.shadowBlur = 8;
             ctx.shadowColor = theme.primary;
 
-            // --- PISTAS IZQUIERDA ---
             let lY1 = cy - 190;
             ctx.beginPath(); ctx.moveTo(0, lY1); ctx.lineTo(cx - 380, lY1); ctx.lineTo(cx - 320, lY1 + 60); ctx.lineTo(cx - 230, lY1 + 60); ctx.stroke();
             drawNodeDot(cx - 380, lY1); drawNodeDot(cx - 230, lY1 + 60);
@@ -217,13 +208,11 @@ hud_html = """
             let lY4 = cy + 210;
             ctx.beginPath(); ctx.moveTo(0, lY4); ctx.lineTo(cx - 300, lY4); ctx.lineTo(cx - 250, lY4 - 40); ctx.lineTo(cx - 210, lY4 - 40); ctx.stroke();
 
-            // Módulos geométricos izquierda
             ctx.strokeStyle = theme.secondary;
             ctx.strokeRect(50, cy - 230, 120, 48);
             ctx.strokeRect(65, cy - 220, 40, 28);
             drawTargetNode(80, cy + 190, 26);
 
-            // --- PISTAS DERECHA ---
             let rY1 = cy - 200;
             ctx.beginPath(); ctx.moveTo(canvas.width, rY1); ctx.lineTo(cx + 400, rY1); ctx.lineTo(cx + 330, rY1 + 60); ctx.lineTo(cx + 230, rY1 + 60); ctx.stroke();
             drawNodeDot(cx + 400, rY1); drawNodeDot(cx + 230, rY1 + 60);
@@ -238,7 +227,6 @@ hud_html = """
 
             drawTargetNode(canvas.width - 90, cy - 200, 26);
 
-            // Chip de 4 Barras Verticales
             ctx.strokeStyle = theme.primary;
             ctx.strokeRect(cx + 290, cy + 20, 75, 95);
             for(let i = 0; i < 4; i++) {
@@ -246,7 +234,6 @@ hud_html = """
                 ctx.fillRect(cx + 304 + (i * 13), cy + 35, 6, 65);
             }
 
-            // Rayo de luz horizontal centrado
             let grad = ctx.createLinearGradient(cx - 320, cy, cx + 320, cy);
             grad.addColorStop(0, 'transparent');
             grad.addColorStop(0.5, theme.primary);
@@ -270,7 +257,6 @@ hud_html = """
             angleInner -= 0.006;
             angleOuter += 0.002;
 
-            // 1. Anillo Exterior Principal
             ctx.save();
             ctx.translate(cx, cy);
             ctx.rotate(angleOuter);
@@ -283,7 +269,6 @@ hud_html = """
             ctx.beginPath(); ctx.arc(0, 0, 235, Math.PI * 1.45, Math.PI * 1.85); ctx.stroke();
             ctx.restore();
 
-            // 2. Anillo de Puntos Cuadrados
             ctx.save();
             ctx.translate(cx, cy);
             ctx.rotate(-angleOuter * 1.5);
@@ -296,7 +281,6 @@ hud_html = """
             }
             ctx.restore();
 
-            // 3. Escala Graduada (Ticks estilo regla)
             ctx.save();
             ctx.translate(cx, cy);
             ctx.rotate(angleInner);
@@ -314,7 +298,6 @@ hud_html = """
             }
             ctx.restore();
 
-            // 4. Bloques Radiales Curvos
             ctx.save();
             ctx.translate(cx, cy);
             ctx.rotate(angleMain * 0.8);
@@ -327,7 +310,6 @@ hud_html = """
             }
             ctx.restore();
 
-            // 5. Cadenas de Ceros "0000000000"
             ctx.save();
             ctx.translate(cx, cy);
             ctx.rotate(-angleMain * 0.5);
@@ -349,7 +331,6 @@ hud_html = """
             }
             ctx.restore();
 
-            // 6. Núcleo Interno
             ctx.save();
             ctx.beginPath();
             ctx.arc(cx, cy, 118, 0, Math.PI * 2);
@@ -378,7 +359,10 @@ hud_html = """
         }
 
         function iniciarTemporizadorEnfoque(minutos) {
-            if (timerInterval) clearInterval(timerInterval);
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
             tiempoRestanteSegundos = minutos * 60;
 
             hablar("Iniciando sesión de enfoque por " + minutos + " minutos. Concentración activada.");
@@ -404,7 +388,7 @@ hud_html = """
             if (timerInterval) {
                 clearInterval(timerInterval);
                 timerInterval = null;
-                document.getElementById('jarvisStatus').innerText = "TEMPORIZADOR DETENIDO";
+                document.getElementById('jarvisStatus').innerText = "SISTEMA ACTIVO";
                 hablar("Sesión de enfoque cancelada.");
             } else {
                 hablar("No hay ninguna sesión de enfoque activa.");
@@ -552,17 +536,19 @@ hud_html = """
                     hablar("Sistemas restaurados a interfaz estándar.");
                 }
 
-                // 7. TEMPORIZADOR DE ENFOQUE (POMODORO)
+                // 7. CANCELAR O DETENER TEMPORIZADOR DE ENFOQUE (MEJORADO)
+                else if (speechResult.includes("detener enfoque") || speechResult.includes("detén el enfoque") || speechResult.includes("deten el enfoque") || speechResult.includes("para el enfoque") || speechResult.includes("cancelar enfoque") || speechResult.includes("cancelar temporizador") || speechResult.includes("detener temporizador")) {
+                    detenerTemporizadorEnfoque();
+                }
+
+                // 8. INICIAR TEMPORIZADOR DE ENFOQUE (POMODORO)
                 else if (speechResult.includes("iniciar sesión de estudio") || speechResult.includes("iniciar sesion de estudio") || speechResult.includes("modo enfoque") || speechResult.includes("temporizador de")) {
                     let numeros = speechResult.match(/\d+/);
                     let minutos = numeros ? parseInt(numeros[0]) : 25;
                     iniciarTemporizadorEnfoque(minutos);
                 }
-                else if (speechResult.includes("cancelar temporizador") || speechResult.includes("detener enfoque") || speechResult.includes("cancelar enfoque")) {
-                    detenerTemporizadorEnfoque();
-                }
 
-                // 8. BLOC DE NOTAS RÁPIDO POR VOZ
+                // 9. BLOC DE NOTAS RÁPIDO POR VOZ
                 else if (speechResult.includes("anota nota") || speechResult.includes("guarda la nota") || speechResult.includes("nueva nota")) {
                     let notaText = speechResult
                         .replace("anota nota", "")
@@ -590,7 +576,7 @@ hud_html = """
                     hablar("Notas eliminadas con éxito.");
                 }
 
-                // 9. INFORME METEOROLÓGICO
+                // 10. INFORME METEOROLÓGICO
                 else if (speechResult.includes("clima") || speechResult.includes("reporte meteorológico") || speechResult.includes("temperatura")) {
                     document.getElementById('jarvisStatus').innerText = "CONSULTANDO CLIMA...";
                     let reporte = await obtenerClima();
@@ -598,7 +584,7 @@ hud_html = """
                     hablar(reporte);
                 }
 
-                // 10. ELIMINAR UNA SOLA TAREA
+                // 11. ELIMINAR UNA SOLA TAREA
                 else if (speechResult.includes("eliminar tarea") || speechResult.includes("borrar tarea") || speechResult.includes("quitar tarea")) {
                     let criterio = speechResult
                         .replace("eliminar tarea", "")
@@ -616,7 +602,7 @@ hud_html = """
                     }
                 }
 
-                // 11. COMANDOS GENERALES DE AGENDA
+                // 12. COMANDOS GENERALES DE AGENDA
                 else if (speechResult.includes("agregar tarea") || speechResult.includes("añadir pendiente") || speechResult.includes("agrega la tarea")) {
                     let nuevaTarea = speechResult
                         .replace("agregar tarea", "")
@@ -651,7 +637,7 @@ hud_html = """
                     hablar("Agenda de tareas reiniciada con éxito.");
                 }
 
-                // 12. REPRODUCTOR DE MÚSICA POR VOZ
+                // 13. REPRODUCTOR DE MÚSICA POR VOZ
                 else if (speechResult.includes("reproduce") || speechResult.includes("reproducir")) {
                     let cancion = speechResult
                         .replace("reproduce", "")
@@ -668,7 +654,7 @@ hud_html = """
                     }
                 }
 
-                // 13. APERTURA DE PLATAFORMAS
+                // 14. APERTURA DE PLATAFORMAS
                 else if (speechResult.includes("pinterest") || speechResult.includes("pinteres")) {
                     hablar("Abriendo Pinterest.");
                     setTimeout(() => { window.open("https://www.pinterest.com", "_blank"); }, 800);
