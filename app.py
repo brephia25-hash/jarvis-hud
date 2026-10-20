@@ -581,8 +581,17 @@ hud_html = """
             recognition.onresult = async function(event) {
                 const speechResult = event.results[event.results.length - 1][0].transcript.toLowerCase().trim();
 
-                // 1. MODO SILENCIO
-                if (speechResult.includes("modo silencio") || speechResult.includes("silenciar voz")) {
+                // 1. APERTURA MEJORADA DE GEMINI
+                if (speechResult.includes("gemini") || speechResult.includes("gémini") || speechResult.includes("geminis") || speechResult.includes("llémini") || speechResult.includes("yemini")) {
+                    emitirPitido();
+                    if (modoSueno) cambiarTema('normal');
+                    document.getElementById('jarvisStatus').innerText = "ABRIENDO GEMINI";
+                    hablar("Abriendo Gemini.");
+                    window.open("https://gemini.google.com", "_blank");
+                }
+
+                // 2. MODO SILENCIO
+                else if (speechResult.includes("modo silencio") || speechResult.includes("silenciar voz")) {
                     emitirPitido();
                     modoSilencio = true;
                     document.getElementById('jarvisStatus').innerText = "MODO SILENCIO";
@@ -594,7 +603,7 @@ hud_html = """
                     hablar("Voz reactivada.");
                 }
 
-                // 2. MODO REPOSO / SUEÑO
+                // 3. MODO REPOSO / SUEÑO
                 else if (speechResult.includes("dormir") || speechResult.includes("descansar") || speechResult.includes("modo descanso") || speechResult.includes("ir a dormir")) {
                     emitirPitido();
                     let hora = registrarMomento('dormir');
@@ -602,7 +611,7 @@ hud_html = """
                     setTimeout(() => { activarModoSueno(); }, 500);
                 }
 
-                // 3. ACTIVACIÓN / DESPERTAR
+                // 4. ACTIVACIÓN / DESPERTAR
                 else if (speechResult.includes("buenos días") || speechResult.includes("buenos dias") || speechResult.includes("buenas noches") || speechResult.includes("hola") || speechResult.includes("despierta")) {
                     emitirPitido();
                     cambiarTema('normal');
@@ -611,7 +620,7 @@ hud_html = """
                     setTimeout(() => { document.getElementById('jarvisStatus').innerText = "SISTEMA ACTIVO"; }, 1500);
                 }
 
-                // 4. AGRADECIMIENTO
+                // 5. AGRADECIMIENTO
                 else if (speechResult.includes("gracias") || speechResult.includes("agradezco")) {
                     emitirPitido();
                     if (modoSueno) cambiarTema('normal');
@@ -619,7 +628,7 @@ hud_html = """
                     hablar("A su servicio.");
                 }
 
-                // 5. REFORMAS Y MEJORAS
+                // 6. REFORMAS Y MEJORAS
                 else if (speechResult.includes("reformas") || speechResult.includes("mejoras") || speechResult.includes("actualización")) {
                     emitirPitido();
                     if (modoSueno) cambiarTema('normal');
@@ -627,15 +636,15 @@ hud_html = """
                     hablar("Entendido, Señor.");
                 }
 
-                // 6. MANUAL DE COMANDOS
+                // 7. MANUAL DE COMANDOS
                 else if (speechResult.includes("qué puedes hacer") || speechResult.includes("que puedes hacer") || speechResult.includes("lista de comandos")) {
                     emitirPitido();
                     if (modoSueno) cambiarTema('normal');
                     document.getElementById('jarvisStatus').innerText = "MODO MANUAL";
-                    hablar("Sistemas activos. Puedo registrar jornadas, gestionar tareas y notas, activar temporizadores, reproducir música, cambiar modos visuales, activar modo silencio, abrir plataformas y buscar en Google.");
+                    hablar("Sistemas activos. Puedo registrar jornadas, gestionar tareas y notas, activar temporizadores, reproducir música, cambiar modos visuales, activar modo silencio, abrir plataformas como Gemini, Notion, Canva o WhatsApp y buscar en Google.");
                 }
 
-                // 7. BÚSQUEDA EN GOOGLE
+                // 8. BÚSQUEDA EN GOOGLE
                 else if (speechResult.includes("busca") || speechResult.includes("buscar")) {
                     emitirPitido();
                     if (modoSueno) cambiarTema('normal');
@@ -655,7 +664,7 @@ hud_html = """
                     }
                 }
 
-                // 8. CONSULTAS DE HORARIO
+                // 9. CONSULTAS DE HORARIO
                 else if (speechResult.includes("desperté") || speechResult.includes("desperte") || speechResult.includes("levanté")) {
                     emitirPitido();
                     if (modoSueno) cambiarTema('normal');
@@ -669,7 +678,7 @@ hud_html = """
                     hablar(reg ? "Se fue a descansar a las " + reg.hora : "Sin registro.");
                 }
 
-                // 9. MODO VISUAL
+                // 10. MODO VISUAL
                 else if (speechResult.includes("modo sigiloso") || speechResult.includes("protocolo nocturno")) {
                     emitirPitido();
                     cambiarTema('sigilo');
@@ -683,7 +692,7 @@ hud_html = """
                     hablar("Modo estándar.");
                 }
 
-                // 10. TEMPORIZADOR
+                // 11. TEMPORIZADOR
                 else if (speechResult.includes("detener enfoque") || speechResult.includes("cancelar enfoque")) {
                     emitirPitido();
                     if (modoSueno) cambiarTema('normal');
@@ -697,7 +706,7 @@ hud_html = """
                     iniciarTemporizadorEnfoque(minutos);
                 }
 
-                // 11. NOTAS
+                // 12. NOTAS
                 else if (speechResult.includes("anota nota") || speechResult.includes("guarda la nota")) {
                     emitirPitido();
                     if (modoSueno) cambiarTema('normal');
@@ -722,7 +731,7 @@ hud_html = """
                     hablar("Notas borradas.");
                 }
 
-                // 12. TAREAS
+                // 13. TAREAS
                 else if (speechResult.includes("eliminar tarea") || speechResult.includes("borrar tarea")) {
                     emitirPitido();
                     if (modoSueno) cambiarTema('normal');
@@ -760,7 +769,7 @@ hud_html = """
                     hablar("Agenda limpia.");
                 }
 
-                // 13. MÚSICA YOUTUBE
+                // 14. MÚSICA YOUTUBE
                 else if (speechResult.includes("reproduce") || speechResult.includes("reproducir")) {
                     emitirPitido();
                     if (modoSueno) cambiarTema('normal');
@@ -773,48 +782,48 @@ hud_html = """
                     }
                 }
 
-                // 14. PLATAFORMAS WEB
+                // 15. PLATAFORMAS WEB
                 else if (speechResult.includes("pinterest")) {
                     emitirPitido();
                     if (modoSueno) cambiarTema('normal');
+                    document.getElementById('jarvisStatus').innerText = "ABRIENDO PINTEREST";
                     hablar("Abriendo Pinterest.");
                     window.open("https://www.pinterest.com", "_blank");
                 }
                 else if (speechResult.includes("youtube")) {
                     emitirPitido();
                     if (modoSueno) cambiarTema('normal');
+                    document.getElementById('jarvisStatus').innerText = "ABRIENDO YOUTUBE";
                     hablar("Abriendo YouTube.");
                     window.open("https://www.youtube.com", "_blank");
                 }
                 else if (speechResult.includes("notion")) {
                     emitirPitido();
                     if (modoSueno) cambiarTema('normal');
+                    document.getElementById('jarvisStatus').innerText = "ABRIENDO NOTION";
                     hablar("Abriendo Notion.");
                     window.open("https://www.notion.so", "_blank");
                 }
                 else if (speechResult.includes("calendario")) {
                     emitirPitido();
                     if (modoSueno) cambiarTema('normal');
+                    document.getElementById('jarvisStatus').innerText = "ABRIENDO CALENDARIO";
                     hablar("Abriendo Calendario.");
                     window.open("https://calendar.google.com", "_blank");
                 }
                 else if (speechResult.includes("canva")) {
                     emitirPitido();
                     if (modoSueno) cambiarTema('normal');
+                    document.getElementById('jarvisStatus').innerText = "ABRIENDO CANVA";
                     hablar("Abriendo Canva.");
                     window.open("https://www.canva.com", "_blank");
                 }
                 else if (speechResult.includes("whatsapp")) {
                     emitirPitido();
                     if (modoSueno) cambiarTema('normal');
+                    document.getElementById('jarvisStatus').innerText = "ABRIENDO WHATSAPP";
                     hablar("Abriendo WhatsApp.");
                     window.open("https://web.whatsapp.com", "_blank");
-                }
-                else if (speechResult.includes("gemini")) {
-                    emitirPitido();
-                    if (modoSueno) cambiarTema('normal');
-                    hablar("Abriendo Gemini.");
-                    window.open("https://gemini.google.com", "_blank");
                 }
             };
 
