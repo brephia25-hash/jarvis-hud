@@ -132,14 +132,17 @@ hud_html = """
 
         let recordatorios = [];
         let alarmas = [];
-        let estadoPendienteAMPM = null; // Guardará comandos a la espera de "AM" o "PM"
+        let estadoPendienteAMPM = null;
+        let alarmaSonandoActiva = false;
+        let intervaloAlarmaBucle = null;
 
-        // REVISIÓN DE ALARMAS Y RECORDATORIOS
+        // REVISIÓN CONTINUA DE ALARMAS Y RECORDATORIOS CADA SEGUNDO
         setInterval(() => {
             const now = new Date();
             const horaActualStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
             document.getElementById('hudClock').innerText = now.toLocaleTimeString();
 
+            // Evaluar recordatorios
             for (let i = recordatorios.length - 1; i >= 0; i--) {
                 if (recordatorios[i].hora === horaActualStr) {
                     let rec = recordatorios.splice(i, 1)[0];
@@ -149,16 +152,68 @@ hud_html = """
                 }
             }
 
-            for (let i = alarmas.length - 1; i >= 0; i--) {
-                if (alarmas[i].hora === horaActualStr) {
-                    alarmas.splice(i, 1);
-                    cambiarTema('normal');
-                    emitirAlarmaSonora();
-                    hablar("Señor, es hora de despertar. La alarma está sonando.");
-                    document.getElementById('jarvisStatus').innerText = "ALARMA SONANDO";
+            // Evaluar alarmas
+            if (!alarmaSonandoActiva) {
+                for (let i = alarmas.length - 1; i >= 0; i--) {
+                    if (alarmas[i].hora === horaActualStr) {
+                        alarmas.splice(i, 1);
+                        iniciarBucleAlarma();
+                        break;
+                    }
                 }
             }
         }, 1000);
+
+        function iniciarBucleAlarma() {
+            alarmaSonandoActiva = true;
+            cambiarTema('normal');
+            document.getElementById('jarvisStatus').innerText = "🔔 ALARMA SONANDO";
+            
+            // Ejecutar ciclo continuo de sonido y mensaje hasta que el usuario diga "silenciar alarma"
+            ejecutarRáfagaSonora();
+            hablar("Señor, es hora de despertar. Diga silenciar alarma para apagarla.");
+
+            intervaloAlarmaBucle = setInterval(() => {
+                if (alarmaSonandoActiva) {
+                    ejecutarRáfagaSonora();
+                    hablar("Señor, la alarma sigue activa. Diga silenciar alarma.");
+                }
+            }, 6000);
+        }
+
+        function detenciónDefinitivaAlarma() {
+            if (alarmaSonandoActiva) {
+                alarmaSonandoActiva = false;
+                if (intervaloAlarmaBucle) {
+                    clearInterval(intervaloAlarmaBucle);
+                    intervaloAlarmaBucle = null;
+                }
+                window.speechSynthesis.cancel();
+                document.getElementById('jarvisStatus').innerText = "SISTEMA ACTIVO";
+                hablar("Alarma desactivada, Señor.");
+            }
+        }
+
+        function ejecutarRáfagaSonora() {
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                for(let i = 0; i < 5; i++) {
+                    setTimeout(() => {
+                        if (!alarmaSonandoActiva) return;
+                        const osc = audioCtx.createOscillator();
+                        const gain = audioCtx.createGain();
+                        osc.type = 'sawtooth';
+                        osc.frequency.setValueAtTime(950, audioCtx.currentTime);
+                        gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.35);
+                        osc.connect(gain);
+                        gain.connect(audioCtx.destination);
+                        osc.start();
+                        osc.stop(audioCtx.currentTime + 0.35);
+                    }, i * 350);
+                }
+            } catch(e) {}
+        }
 
         let angleMain = 0, angleInner = 0, angleOuter = 0;
         let modoSueno = false, modoSilencio = false, pulseTime = 0;
@@ -172,7 +227,7 @@ hud_html = """
         };
 
         function emitirPitido() {
-            if (modoSilencio) return;
+            if (modoSilencio || alarmaSonandoActiva) return;
             try {
                 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
                 const osc = audioCtx.createOscillator();
@@ -185,26 +240,6 @@ hud_html = """
                 gain.connect(audioCtx.destination);
                 osc.start();
                 osc.stop(audioCtx.currentTime + 0.12);
-            } catch(e) {}
-        }
-
-        function emitirAlarmaSonora() {
-            try {
-                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                for(let i = 0; i < 3; i++) {
-                    setTimeout(() => {
-                        const osc = audioCtx.createOscillator();
-                        const gain = audioCtx.createGain();
-                        osc.type = 'sawtooth';
-                        osc.frequency.setValueAtTime(880, audioCtx.currentTime);
-                        gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
-                        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.4);
-                        osc.connect(gain);
-                        gain.connect(audioCtx.destination);
-                        osc.start();
-                        osc.stop(audioCtx.currentTime + 0.4);
-                    }, i * 500);
-                }
             } catch(e) {}
         }
 
@@ -333,7 +368,6 @@ hud_html = """
             window.speechSynthesis.speak(utterance);
         }
 
-        // EXTRACCIÓN Y VALIDACIÓN DE HORA CON PREGUNTA AM/PM
         function analizarHoraTexto(texto) {
             let match = texto.match(/(\d{1,2})[:\s]*(\d{2})?/);
             if (!match) return null;
@@ -427,6 +461,12 @@ hud_html = """
 
             recognition.onresult = async function(event) {
                 const speechResult = event.results[event.results.length - 1][0].transcript.toLowerCase().trim();
+
+                // 0. DESACTIVACIÓN PRIORITARIA DE ALARMA SONANDO
+                if (speechResult.includes("silenciar alarma") || speechResult.includes("apagar alarma") || speechResult.includes("detener alarma") || speechResult.includes("silenciar")) {
+                    detenciónDefinitivaAlarma();
+                    return;
+                }
 
                 // MANEJO DE RESPUESTA PENDIENTE A.M. O P.M.
                 if (estadoPendienteAMPM) {
@@ -612,7 +652,7 @@ hud_html = """
                     window.open("https://web.whatsapp.com", "_blank");
                 }
 
-                // 5. CONTROL GENERAL DE MODO SILENCIO Y REPOSO
+                // 5. CONTROL GENERAL
                 else if (speechResult.includes("modo silencio") || speechResult.includes("silenciar voz")) {
                     emitirPitido(); modoSilencio = true; document.getElementById('jarvisStatus').innerText = "MODO SILENCIO";
                 }
@@ -633,7 +673,7 @@ hud_html = """
                 }
                 else if (speechResult.includes("qué puedes hacer") || speechResult.includes("que puedes hacer") || speechResult.includes("lista de comandos")) {
                     emitirPitido(); if (modoSueno) cambiarTema('normal'); document.getElementById('jarvisStatus').innerText = "MODO MANUAL";
-                    hablar("Sistemas activos. Puedo gestionar alarmas y recordatorios por hora con confirmación A.M. y P.M., registrar tareas y notas, controlar temporizadores, reproducir música, cambiar modos visuales y abrir plataformas web.");
+                    hablar("Sistemas activos. Puedo gestionar alarmas continuas y recordatorios por hora con confirmación A.M. y P.M., registrar tareas y notas, controlar temporizadores, reproducir música, cambiar modos visuales y abrir plataformas web.");
                 }
                 else if (speechResult.includes("busca") || speechResult.includes("buscar")) {
                     emitirPitido(); if (modoSueno) cambiarTema('normal');
