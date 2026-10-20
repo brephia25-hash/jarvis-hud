@@ -430,27 +430,21 @@ hud_html = """
 
             recognition.onresult = async function(event) {
                 const speechResult = event.results[event.results.length - 1][0].transcript.toLowerCase().trim();
-                document.getElementById('jarvisStatus').innerText = "COMANDO: " + speechResult.toUpperCase();
                 
-                let comandoReconocido = false;
-
-                // 1. REFORMAS Y MEJORAS (NUEVO GUIÑO)
+                // 1. REFORMAS Y MEJORAS
                 if (speechResult.includes("reformas") || speechResult.includes("mejoras") || speechResult.includes("actualización") || speechResult.includes("actualizacion")) {
-                    comandoReconocido = true;
                     document.getElementById('jarvisStatus').innerText = "MODO OPTIMIZACIÓN";
                     hablar("Entendido, Señor. Estaré esperando mis próximas mejoras para optimizar mis sistemas.");
                 }
 
                 // 2. LISTA DE COMANDOS Y FUNCIONES
                 else if (speechResult.includes("qué puedes hacer") || speechResult.includes("que puedes hacer") || speechResult.includes("cuáles son tus funciones") || speechResult.includes("cuales son tus funciones") || speechResult.includes("lista de comandos") || speechResult.includes("manual de funciones")) {
-                    comandoReconocido = true;
                     document.getElementById('jarvisStatus').innerText = "MOSTRANDO FUNCIONES";
                     hablar("Mis capacidades principales incluyen: registrar su horario de descanso y despertar, gestionar sus tareas y notas rápidas, iniciar sesiones de enfoque con temporizador, informar el clima local, reproducir música en YouTube, cambiar a modo sigilo y abrir sus plataformas habituales.");
                 }
 
                 // 3. CONSULTAS DE HORARIO
                 else if (speechResult.includes("desperté") || speechResult.includes("desperte") || speechResult.includes("levanté") || speechResult.includes("levante") || speechResult.includes("hora de inicio")) {
-                    comandoReconocido = true;
                     let reg = obtenerMomento('despertar');
                     if (!reg) {
                         hablar("No tengo registrado el inicio de su jornada reciente.");
@@ -459,7 +453,6 @@ hud_html = """
                     }
                 }
                 else if (speechResult.includes("a qué hora me dormí") || speechResult.includes("a que hora me dormi") || speechResult.includes("cuándo descansé") || speechResult.includes("cuando me dormi")) {
-                    comandoReconocido = true;
                     let reg = obtenerMomento('dormir');
                     if (!reg) {
                         hablar("No tengo registrado un horario de descanso reciente.");
@@ -470,7 +463,6 @@ hud_html = """
 
                 // 4. ACTIVACIÓN E INICIO
                 else if (speechResult.includes("buenos días") || speechResult.includes("buenos dias") || speechResult.includes("buenas noches") || speechResult.includes("hola jarvis")) {
-                    comandoReconocido = true;
                     let hora = registrarMomento('despertar');
                     hablar("Saludos. Sistemas en línea. Inicio de actividad registrado a las " + hora);
                     setTimeout(() => { document.getElementById('jarvisStatus').innerText = "SISTEMA ACTIVO"; }, 4000);
@@ -478,7 +470,6 @@ hud_html = """
 
                 // 5. MODO REPOSO / DESCANSO
                 else if (speechResult === "dormir" || speechResult === "descansar" || speechResult.includes("modo descanso") || speechResult.includes("ir a dormir") || speechResult.includes("ir a descansar")) {
-                    comandoReconocido = true;
                     let hora = registrarMomento('dormir');
                     hablar("Entendido. Hora de descanso registrada a las " + hora + ". Que tenga un buen descanso.");
                     setTimeout(() => { document.getElementById('jarvisStatus').innerText = "SISTEMA EN REPOSO"; }, 4000);
@@ -486,13 +477,11 @@ hud_html = """
 
                 // 6. CONTROL DE MODO VISUAL HUD
                 else if (speechResult.includes("modo sigiloso") || speechResult.includes("protocolo nocturno") || speechResult.includes("modo rojo")) {
-                    comandoReconocido = true;
                     cambiarTema('sigilo');
                     document.getElementById('jarvisStatus').innerText = "MODO SIGILO ACTIVO";
                     hablar("Protocolo nocturno activado. Ajustando espectro visual.");
                 }
                 else if (speechResult.includes("modo normal") || speechResult.includes("protocolo estándar") || speechResult.includes("modo cian")) {
-                    comandoReconocido = true;
                     cambiarTema('normal');
                     document.getElementById('jarvisStatus').innerText = "MODO ESTÁNDAR";
                     hablar("Sistemas restaurados a interfaz estándar.");
@@ -500,19 +489,16 @@ hud_html = """
 
                 // 7. TEMPORIZADOR DE ENFOQUE (POMODORO)
                 else if (speechResult.includes("iniciar sesión de estudio") || speechResult.includes("iniciar sesion de estudio") || speechResult.includes("modo enfoque") || speechResult.includes("temporizador de")) {
-                    comandoReconocido = true;
                     let numeros = speechResult.match(/\d+/);
                     let minutos = numeros ? parseInt(numeros[0]) : 25;
                     iniciarTemporizadorEnfoque(minutos);
                 }
                 else if (speechResult.includes("cancelar temporizador") || speechResult.includes("detener enfoque") || speechResult.includes("cancelar enfoque")) {
-                    comandoReconocido = true;
                     detenerTemporizadorEnfoque();
                 }
 
                 // 8. BLOC DE NOTAS RÁPIDO POR VOZ
                 else if (speechResult.includes("anota nota") || speechResult.includes("guarda la nota") || speechResult.includes("nueva nota")) {
-                    comandoReconocido = true;
                     let notaText = speechResult
                         .replace("anota nota", "")
                         .replace("guarda la nota", "")
@@ -527,7 +513,6 @@ hud_html = """
                     }
                 }
                 else if (speechResult.includes("mis notas") || speechResult.includes("lee mis notas") || speechResult.includes("cuáles son mis notas")) {
-                    comandoReconocido = true;
                     let notas = obtenerNotas();
                     if (notas.length === 0) {
                         hablar("No tiene notas registradas.");
@@ -536,14 +521,12 @@ hud_html = """
                     }
                 }
                 else if (speechResult.includes("limpiar notas") || speechResult.includes("borrar notas")) {
-                    comandoReconocido = true;
                     limpiarNotas();
                     hablar("Notas eliminadas con éxito.");
                 }
 
                 // 9. INFORME METEOROLÓGICO
                 else if (speechResult.includes("clima") || speechResult.includes("reporte meteorológico") || speechResult.includes("temperatura")) {
-                    comandoReconocido = true;
                     document.getElementById('jarvisStatus').innerText = "CONSULTANDO CLIMA...";
                     let reporte = await obtenerClima();
                     document.getElementById('jarvisStatus').innerText = "SISTEMA ACTIVO";
@@ -552,7 +535,6 @@ hud_html = """
 
                 // 10. ELIMINAR UNA SOLA TAREA
                 else if (speechResult.includes("eliminar tarea") || speechResult.includes("borrar tarea") || speechResult.includes("quitar tarea")) {
-                    comandoReconocido = true;
                     let criterio = speechResult
                         .replace("eliminar tarea", "")
                         .replace("borrar tarea", "")
@@ -571,7 +553,6 @@ hud_html = """
 
                 // 11. COMANDOS GENERALES DE AGENDA
                 else if (speechResult.includes("agregar tarea") || speechResult.includes("añadir pendiente") || speechResult.includes("agrega la tarea")) {
-                    comandoReconocido = true;
                     let nuevaTarea = speechResult
                         .replace("agregar tarea", "")
                         .replace("añadir pendiente", "")
@@ -586,7 +567,6 @@ hud_html = """
                     }
                 }
                 else if (speechResult.includes("mis pendientes") || speechResult.includes("mis tareas") || speechResult.includes("lee mis tareas") || speechResult.includes("cuáles son mis tareas") || speechResult.includes("cuales son mis tareas")) {
-                    comandoReconocido = true;
                     let lista = obtenerTareas();
                     if (lista.length === 0) {
                         document.getElementById('jarvisStatus').innerText = "SIN PENDIENTES";
@@ -601,7 +581,6 @@ hud_html = """
                     }
                 }
                 else if (speechResult.includes("limpiar tareas") || speechResult.includes("borrar pendientes") || speechResult.includes("borrar todas las tareas")) {
-                    comandoReconocido = true;
                     limpiarTareas();
                     document.getElementById('jarvisStatus').innerText = "AGENDA LIMPIA";
                     hablar("Agenda de tareas reiniciada con éxito.");
@@ -609,7 +588,6 @@ hud_html = """
 
                 // 12. REPRODUCTOR DE MÚSICA POR VOZ
                 else if (speechResult.includes("reproduce") || speechResult.includes("reproducir")) {
-                    comandoReconocido = true;
                     let cancion = speechResult
                         .replace("reproduce", "")
                         .replace("reproducir", "")
@@ -627,45 +605,32 @@ hud_html = """
 
                 // 13. APERTURA DE PLATAFORMAS
                 else if (speechResult.includes("pinterest") || speechResult.includes("pinteres")) {
-                    comandoReconocido = true;
                     hablar("Abriendo Pinterest.");
                     setTimeout(() => { window.open("https://www.pinterest.com", "_blank"); }, 800);
                 }
                 else if (speechResult.includes("youtube") || speechResult.includes("llutub")) {
-                    comandoReconocido = true;
                     hablar("Abriendo YouTube.");
                     setTimeout(() => { window.open("https://www.youtube.com", "_blank"); }, 800);
                 }
                 else if (speechResult.includes("notion") || speechResult.includes("nocion") || speechResult.includes("noishon")) {
-                    comandoReconocido = true;
                     hablar("Abriendo Notion.");
                     setTimeout(() => { window.open("https://www.notion.so", "_blank"); }, 800);
                 }
                 else if (speechResult.includes("calendario")) {
-                    comandoReconocido = true;
                     hablar("Abriendo Calendario.");
                     setTimeout(() => { window.open("https://calendar.google.com", "_blank"); }, 800);
                 }
                 else if (speechResult.includes("canva")) {
-                    comandoReconocido = true;
                     hablar("Abriendo Canva.");
                     setTimeout(() => { window.open("https://www.canva.com", "_blank"); }, 800);
                 }
                 else if (speechResult.includes("whatsapp") || speechResult.includes("wasap")) {
-                    comandoReconocido = true;
                     hablar("Abriendo WhatsApp Web.");
                     setTimeout(() => { window.open("https://web.whatsapp.com", "_blank"); }, 800);
                 }
                 else if (speechResult.includes("gemini") || speechResult.includes("gémini") || speechResult.includes("geminis") || speechResult.includes("jemini")) {
-                    comandoReconocido = true;
                     hablar("Abriendo Gemini.");
                     setTimeout(() => { window.open("https://gemini.google.com", "_blank"); }, 800);
-                }
-
-                // 14. RESPUESTA POR DEFECTO PARA COMANDOS NO RECONOCIDOS
-                if (!comandoReconocido) {
-                    document.getElementById('jarvisStatus').innerText = "COMANDO DESCONOCIDO";
-                    hablar("No soy capaz actualmente de realizar esta tarea");
                 }
             };
 
