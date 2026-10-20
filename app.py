@@ -14,7 +14,7 @@ hide_streamlit_style = """
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
-    .stApp { background-color: #010a17; overflow: hidden; }
+    .stApp { background-color: #000000; overflow: hidden; }
     </style>
 """
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
@@ -40,7 +40,7 @@ hud_html = """
             align-items: center;
             height: 100vh;
             font-family: 'Consolas', monospace;
-            transition: background-color 0.5s ease;
+            transition: background-color 1.5s ease;
         }
         .hud-container {
             position: relative;
@@ -54,6 +54,7 @@ hud_html = """
             position: absolute;
             top: 0;
             left: 0;
+            transition: opacity 1.5s ease;
         }
         .core-text {
             position: absolute;
@@ -69,6 +70,7 @@ hud_html = """
             color: #ffffff;
             text-shadow: 0 0 20px #00f3ff, 0 0 40px #00f3ff;
             font-weight: 800;
+            transition: color 1.5s ease, text-shadow 1.5s ease;
         }
         .core-text p {
             margin: 8px 0 0 0;
@@ -76,6 +78,7 @@ hud_html = """
             color: #38bdf8;
             letter-spacing: 4px;
             text-transform: uppercase;
+            transition: color 1.5s ease;
         }
         .status-bar {
             position: absolute;
@@ -90,6 +93,7 @@ hud_html = """
             border-radius: 4px;
             box-shadow: 0 0 12px rgba(0, 243, 255, 0.25);
             cursor: pointer;
+            transition: opacity 1.5s ease, border-color 1.5s ease, color 1.5s ease;
         }
     </style>
 </head>
@@ -117,6 +121,8 @@ hud_html = """
         let angleMain = 0;
         let angleInner = 0;
         let angleOuter = 0;
+        let modoSueno = false;
+        let pulseTime = 0;
 
         let theme = {
             primary: '#00f3ff',
@@ -127,6 +133,11 @@ hud_html = """
         };
 
         function cambiarTema(modo) {
+            modoSueno = false;
+            canvas.style.opacity = "1";
+            document.body.style.backgroundColor = "#010a17";
+            document.getElementById('audioStatus').style.opacity = "1";
+
             if (modo === 'sigilo') {
                 theme.primary = '#ff2a2a';
                 theme.secondary = '#f87171';
@@ -135,7 +146,7 @@ hud_html = """
                 theme.glow = 'rgba(255, 42, 42, 0.9)';
                 document.getElementById('jarvisTitle').style.textShadow = "0 0 20px #ff2a2a, 0 0 40px #ff2a2a";
                 document.getElementById('jarvisStatus').style.color = "#f87171";
-            } else {
+            } else if (modo === 'normal') {
                 theme.primary = '#00f3ff';
                 theme.secondary = '#38bdf8';
                 theme.darkLine = '#0284c7';
@@ -144,6 +155,20 @@ hud_html = """
                 document.getElementById('jarvisTitle').style.textShadow = "0 0 20px #00f3ff, 0 0 40px #00f3ff";
                 document.getElementById('jarvisStatus').style.color = "#38bdf8";
             }
+        }
+
+        function activarModoSueno() {
+            modoSueno = true;
+            document.body.style.backgroundColor = "#000000";
+            canvas.style.opacity = "0.2";
+            document.getElementById('audioStatus').style.opacity = "0.3";
+            theme.primary = '#0284c7';
+            theme.secondary = '#0369a1';
+            theme.darkLine = '#0c4a6e';
+            theme.dimLine = 'rgba(2, 20, 40, 0.15)';
+            document.getElementById('jarvisTitle').style.textShadow = "0 0 10px #0284c7";
+            document.getElementById('jarvisStatus').style.color = "#0284c7";
+            document.getElementById('jarvisStatus').innerText = "REPOSO PROFUNDO";
         }
 
         let timerInterval = null;
@@ -167,7 +192,7 @@ hud_html = """
             ctx.beginPath();
             ctx.arc(x, y, radius, 0, Math.PI * 2);
             ctx.fillStyle = theme.primary;
-            ctx.shadowBlur = 10;
+            ctx.shadowBlur = modoSueno ? 3 : 10;
             ctx.shadowColor = theme.primary;
             ctx.fill();
         }
@@ -176,7 +201,7 @@ hud_html = """
             ctx.save();
             ctx.strokeStyle = theme.primary;
             ctx.lineWidth = 1.8;
-            ctx.shadowBlur = 10;
+            ctx.shadowBlur = modoSueno ? 3 : 10;
             ctx.shadowColor = theme.primary;
 
             ctx.beginPath(); ctx.arc(x, y, size, 0, Math.PI * 2); ctx.stroke();
@@ -190,7 +215,7 @@ hud_html = """
             ctx.save();
             ctx.strokeStyle = theme.darkLine;
             ctx.lineWidth = 2;
-            ctx.shadowBlur = 8;
+            ctx.shadowBlur = modoSueno ? 2 : 8;
             ctx.shadowColor = theme.primary;
 
             let lY1 = cy - 190;
@@ -253,16 +278,17 @@ hud_html = """
             drawBackgroundGrid();
             drawPCB(cx, cy);
 
-            angleMain += 0.004;
-            angleInner -= 0.006;
-            angleOuter += 0.002;
+            let speedMultiplier = modoSueno ? 0.2 : 1.0;
+            angleMain += 0.004 * speedMultiplier;
+            angleInner -= 0.006 * speedMultiplier;
+            angleOuter += 0.002 * speedMultiplier;
 
             ctx.save();
             ctx.translate(cx, cy);
             ctx.rotate(angleOuter);
             ctx.strokeStyle = theme.primary;
             ctx.lineWidth = 3;
-            ctx.shadowBlur = 15;
+            ctx.shadowBlur = modoSueno ? 5 : 15;
             ctx.shadowColor = theme.primary;
 
             ctx.beginPath(); ctx.arc(0, 0, 235, 0, Math.PI * 1.35); ctx.stroke();
@@ -331,14 +357,18 @@ hud_html = """
             }
             ctx.restore();
 
+            // Respiración de luz si está en Modo Sueño
+            pulseTime += 0.02;
+            let pulseGlow = modoSueno ? (Math.sin(pulseTime) * 8 + 12) : 20;
+
             ctx.save();
             ctx.beginPath();
             ctx.arc(cx, cy, 118, 0, Math.PI * 2);
-            ctx.fillStyle = 'rgba(1, 10, 23, 0.95)';
+            ctx.fillStyle = modoSueno ? 'rgba(0, 0, 0, 0.98)' : 'rgba(1, 10, 23, 0.95)';
             ctx.fill();
             ctx.strokeStyle = theme.primary;
             ctx.lineWidth = 3.5;
-            ctx.shadowBlur = 20;
+            ctx.shadowBlur = pulseGlow;
             ctx.shadowColor = theme.primary;
             ctx.stroke();
             ctx.restore();
@@ -359,6 +389,7 @@ hud_html = """
         }
 
         function iniciarTemporizadorEnfoque(minutos) {
+            cambiarTema('normal');
             if (timerInterval) {
                 clearInterval(timerInterval);
                 timerInterval = null;
@@ -444,18 +475,6 @@ hud_html = """
             localStorage.removeItem('jarvis_notas');
         }
 
-        async function obtenerClima() {
-            try {
-                const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=10.48801&longitude=-66.87919&current_weather=true');
-                const data = await res.json();
-                if (data && data.current_weather) {
-                    let temp = Math.round(data.current_weather.temperature);
-                    return "La temperatura actual en Caracas es de " + temp + " grados centígrados.";
-                }
-            } catch(e) {}
-            return "No pude obtener la información del clima en este momento.";
-        }
-
         function registrarMomento(tipo) {
             const ahora = new Date();
             const horaFormateada = ahora.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -470,7 +489,6 @@ hud_html = """
             return data ? JSON.parse(data) : null;
         }
 
-        // Reconocimiento de Voz Persistente con Auto-Reinicio
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (SpeechRecognition) {
             const recognition = new SpeechRecognition();
@@ -482,20 +500,65 @@ hud_html = """
             recognition.onresult = async function(event) {
                 const speechResult = event.results[event.results.length - 1][0].transcript.toLowerCase().trim();
                 
-                // 1. REFORMAS Y MEJORAS
-                if (speechResult.includes("reformas") || speechResult.includes("mejoras") || speechResult.includes("actualización") || speechResult.includes("actualizacion")) {
+                // 1. MODO REPOSO / DESCANSO / SUEÑO (MODO NEGRO ACTIVADO)
+                if (speechResult === "dormir" || speechResult === "descansar" || speechResult.includes("modo descanso") || speechResult.includes("ir a dormir") || speechResult.includes("ir a descansar")) {
+                    let hora = registrarMomento('dormir');
+                    hablar("Entendido. Hora de descanso registrada a las " + hora + ". Entrando en reposo profundo.");
+                    setTimeout(() => { activarModoSueno(); }, 2000);
+                }
+
+                // 2. ACTIVACIÓN Y DESPERTAR (RESTAURA MODO NORMAL)
+                else if (speechResult.includes("buenos días") || speechResult.includes("buenos dias") || speechResult.includes("buenas noches") || speechResult.includes("hola jarvis") || speechResult.includes("despierta") || speechResult.includes("despertar")) {
+                    cambiarTema('normal');
+                    let hora = registrarMomento('despertar');
+                    hablar("Saludos. Sistemas reactivados. Inicio de actividad registrado a las " + hora);
+                    setTimeout(() => { document.getElementById('jarvisStatus').innerText = "SISTEMA ACTIVO"; }, 4000);
+                }
+
+                // 3. RESPUESTA A AGRADECIMIENTO
+                else if (speechResult.includes("gracias") || speechResult.includes("agradezco")) {
+                    if (modoSueno) cambiarTema('normal');
+                    document.getElementById('jarvisStatus').innerText = "A SU SERVICIO";
+                    hablar("Siempre a su servicio, Señor.");
+                }
+
+                // 4. REFORMAS Y MEJORAS
+                else if (speechResult.includes("reformas") || speechResult.includes("mejoras") || speechResult.includes("actualización") || speechResult.includes("actualizacion")) {
+                    if (modoSueno) cambiarTema('normal');
                     document.getElementById('jarvisStatus').innerText = "MODO OPTIMIZACIÓN";
                     hablar("Entendido, Señor. Estaré esperando mis próximas mejoras para optimizar mis sistemas.");
                 }
 
-                // 2. LISTA DE COMANDOS Y FUNCIONES
+                // 5. LISTA ENUMERADA DE COMANDOS Y FUNCIONES
                 else if (speechResult.includes("qué puedes hacer") || speechResult.includes("que puedes hacer") || speechResult.includes("cuáles son tus funciones") || speechResult.includes("cuales son tus funciones") || speechResult.includes("lista de comandos") || speechResult.includes("manual de funciones")) {
-                    document.getElementById('jarvisStatus').innerText = "MOSTRANDO FUNCIONES";
-                    hablar("Mis capacidades principales incluyen: registrar su horario de descanso y despertar, gestionar sus tareas y notas rápidas, iniciar sesiones de enfoque con temporizador, informar el clima local, reproducir música en YouTube, cambiar a modo sigilo y abrir sus plataformas habituales.");
+                    if (modoSueno) cambiarTema('normal');
+                    document.getElementById('jarvisStatus').innerText = "MODO MANUAL";
+                    hablar("Sistemas principales activos. Puedo: uno, registrar tu hora de despertar y descanso. Dos, gestionar tu agenda de tareas y bloc de notas. Tres, iniciar sesiones de enfoque con temporizador. Cuatro, reproducir música en YouTube. Cinco, cambiar a modo sigilo. Seis, abrir plataformas como Notion, Canva, WhatsApp, Pinterest o Gemini. Y siete, realizar búsquedas directas en Google por voz.");
                 }
 
-                // 3. CONSULTAS DE HORARIO
+                // 6. BÚSQUEDA DIRECTA EN GOOGLE
+                else if (speechResult.includes("busca en google") || speechResult.includes("buscar en google") || speechResult.startsWith("busca ") || speechResult.startsWith("buscar ")) {
+                    if (modoSueno) cambiarTema('normal');
+                    let consulta = speechResult
+                        .replace("busca en google", "")
+                        .replace("buscar en google", "")
+                        .replace("busca", "")
+                        .replace("buscar", "")
+                        .trim();
+                    if (consulta.length > 0) {
+                        hablar("Buscando en Google: " + consulta);
+                        document.getElementById('jarvisStatus').innerText = "BUSCANDO EN GOOGLE";
+                        setTimeout(() => { 
+                            window.open("https://www.google.com/search?q=" + encodeURIComponent(consulta), "_blank"); 
+                        }, 1000);
+                    } else {
+                        hablar("Por favor especifique qué desea buscar.");
+                    }
+                }
+
+                // 7. CONSULTAS DE HORARIO
                 else if (speechResult.includes("desperté") || speechResult.includes("desperte") || speechResult.includes("levanté") || speechResult.includes("levante") || speechResult.includes("hora de inicio")) {
+                    if (modoSueno) cambiarTema('normal');
                     let reg = obtenerMomento('despertar');
                     if (!reg) {
                         hablar("No tengo registrado el inicio de su jornada reciente.");
@@ -504,6 +567,7 @@ hud_html = """
                     }
                 }
                 else if (speechResult.includes("a qué hora me dormí") || speechResult.includes("a que hora me dormi") || speechResult.includes("cuándo descansé") || speechResult.includes("cuando me dormi")) {
+                    if (modoSueno) cambiarTema('normal');
                     let reg = obtenerMomento('dormir');
                     if (!reg) {
                         hablar("No tengo registrado un horario de descanso reciente.");
@@ -512,21 +576,7 @@ hud_html = """
                     }
                 }
 
-                // 4. ACTIVACIÓN E INICIO
-                else if (speechResult.includes("buenos días") || speechResult.includes("buenos dias") || speechResult.includes("buenas noches") || speechResult.includes("hola jarvis")) {
-                    let hora = registrarMomento('despertar');
-                    hablar("Saludos. Sistemas en línea. Inicio de actividad registrado a las " + hora);
-                    setTimeout(() => { document.getElementById('jarvisStatus').innerText = "SISTEMA ACTIVO"; }, 4000);
-                } 
-
-                // 5. MODO REPOSO / DESCANSO
-                else if (speechResult === "dormir" || speechResult === "descansar" || speechResult.includes("modo descanso") || speechResult.includes("ir a dormir") || speechResult.includes("ir a descansar")) {
-                    let hora = registrarMomento('dormir');
-                    hablar("Entendido. Hora de descanso registrada a las " + hora + ". Que tenga un buen descanso.");
-                    setTimeout(() => { document.getElementById('jarvisStatus').innerText = "SISTEMA EN REPOSO"; }, 4000);
-                }
-
-                // 6. CONTROL DE MODO VISUAL HUD
+                // 8. CONTROL DE MODO VISUAL HUD
                 else if (speechResult.includes("modo sigiloso") || speechResult.includes("protocolo nocturno") || speechResult.includes("modo rojo")) {
                     cambiarTema('sigilo');
                     document.getElementById('jarvisStatus').innerText = "MODO SIGILO ACTIVO";
@@ -538,20 +588,23 @@ hud_html = """
                     hablar("Sistemas restaurados a interfaz estándar.");
                 }
 
-                // 7. CANCELAR O DETENER TEMPORIZADOR DE ENFOQUE
+                // 9. CANCELAR O DETENER TEMPORIZADOR DE ENFOQUE
                 else if (speechResult.includes("detener enfoque") || speechResult.includes("detén el enfoque") || speechResult.includes("deten el enfoque") || speechResult.includes("para el enfoque") || speechResult.includes("cancelar enfoque") || speechResult.includes("cancelar temporizador") || speechResult.includes("detener temporizador")) {
+                    if (modoSueno) cambiarTema('normal');
                     detenerTemporizadorEnfoque();
                 }
 
-                // 8. INICIAR TEMPORIZADOR DE ENFOQUE (POMODORO)
+                // 10. INICIAR TEMPORIZADOR DE ENFOQUE (POMODORO)
                 else if (speechResult.includes("iniciar sesión de estudio") || speechResult.includes("iniciar sesion de estudio") || speechResult.includes("modo enfoque") || speechResult.includes("temporizador de")) {
+                    if (modoSueno) cambiarTema('normal');
                     let numeros = speechResult.match(/\d+/);
                     let minutos = numeros ? parseInt(numeros[0]) : 25;
                     iniciarTemporizadorEnfoque(minutos);
                 }
 
-                // 9. BLOC DE NOTAS RÁPIDO POR VOZ
+                // 11. BLOC DE NOTAS RÁPIDO POR VOZ
                 else if (speechResult.includes("anota nota") || speechResult.includes("guarda la nota") || speechResult.includes("nueva nota")) {
+                    if (modoSueno) cambiarTema('normal');
                     let notaText = speechResult
                         .replace("anota nota", "")
                         .replace("guarda la nota", "")
@@ -566,6 +619,7 @@ hud_html = """
                     }
                 }
                 else if (speechResult.includes("mis notas") || speechResult.includes("lee mis notas") || speechResult.includes("cuáles son mis notas")) {
+                    if (modoSueno) cambiarTema('normal');
                     let notas = obtenerNotas();
                     if (notas.length === 0) {
                         hablar("No tiene notas registradas.");
@@ -574,20 +628,14 @@ hud_html = """
                     }
                 }
                 else if (speechResult.includes("limpiar notas") || speechResult.includes("borrar notas")) {
+                    if (modoSueno) cambiarTema('normal');
                     limpiarNotas();
                     hablar("Notas eliminadas con éxito.");
                 }
 
-                // 10. INFORME METEOROLÓGICO
-                else if (speechResult.includes("clima") || speechResult.includes("reporte meteorológico") || speechResult.includes("temperatura")) {
-                    document.getElementById('jarvisStatus').innerText = "CONSULTANDO CLIMA...";
-                    let reporte = await obtenerClima();
-                    document.getElementById('jarvisStatus').innerText = "SISTEMA ACTIVO";
-                    hablar(reporte);
-                }
-
-                // 11. ELIMINAR UNA SOLA TAREA
+                // 12. ELIMINAR UNA SOLA TAREA
                 else if (speechResult.includes("eliminar tarea") || speechResult.includes("borrar tarea") || speechResult.includes("quitar tarea")) {
+                    if (modoSueno) cambiarTema('normal');
                     let criterio = speechResult
                         .replace("eliminar tarea", "")
                         .replace("borrar tarea", "")
@@ -604,8 +652,9 @@ hud_html = """
                     }
                 }
 
-                // 12. COMANDOS GENERALES DE AGENDA
+                // 13. COMANDOS GENERALES DE AGENDA
                 else if (speechResult.includes("agregar tarea") || speechResult.includes("añadir pendiente") || speechResult.includes("agrega la tarea")) {
+                    if (modoSueno) cambiarTema('normal');
                     let nuevaTarea = speechResult
                         .replace("agregar tarea", "")
                         .replace("añadir pendiente", "")
@@ -620,6 +669,7 @@ hud_html = """
                     }
                 }
                 else if (speechResult.includes("mis pendientes") || speechResult.includes("mis tareas") || speechResult.includes("lee mis tareas") || speechResult.includes("cuáles son mis tareas") || speechResult.includes("cuales son mis tareas")) {
+                    if (modoSueno) cambiarTema('normal');
                     let lista = obtenerTareas();
                     if (lista.length === 0) {
                         document.getElementById('jarvisStatus').innerText = "SIN PENDIENTES";
@@ -634,13 +684,15 @@ hud_html = """
                     }
                 }
                 else if (speechResult.includes("limpiar tareas") || speechResult.includes("borrar pendientes") || speechResult.includes("borrar todas las tareas")) {
+                    if (modoSueno) cambiarTema('normal');
                     limpiarTareas();
                     document.getElementById('jarvisStatus').innerText = "AGENDA LIMPIA";
                     hablar("Agenda de tareas reiniciada con éxito.");
                 }
 
-                // 13. REPRODUCTOR DE MÚSICA POR VOZ
+                // 14. REPRODUCTOR DE MÚSICA POR VOZ
                 else if (speechResult.includes("reproduce") || speechResult.includes("reproducir")) {
+                    if (modoSueno) cambiarTema('normal');
                     let cancion = speechResult
                         .replace("reproduce", "")
                         .replace("reproducir", "")
@@ -656,38 +708,44 @@ hud_html = """
                     }
                 }
 
-                // 14. APERTURA DE PLATAFORMAS
+                // 15. APERTURA DE PLATAFORMAS
                 else if (speechResult.includes("pinterest") || speechResult.includes("pinteres")) {
+                    if (modoSueno) cambiarTema('normal');
                     hablar("Abriendo Pinterest.");
                     setTimeout(() => { window.open("https://www.pinterest.com", "_blank"); }, 800);
                 }
                 else if (speechResult.includes("youtube") || speechResult.includes("llutub")) {
+                    if (modoSueno) cambiarTema('normal');
                     hablar("Abriendo YouTube.");
                     setTimeout(() => { window.open("https://www.youtube.com", "_blank"); }, 800);
                 }
                 else if (speechResult.includes("notion") || speechResult.includes("nocion") || speechResult.includes("noishon")) {
+                    if (modoSueno) cambiarTema('normal');
                     hablar("Abriendo Notion.");
                     setTimeout(() => { window.open("https://www.notion.so", "_blank"); }, 800);
                 }
                 else if (speechResult.includes("calendario")) {
+                    if (modoSueno) cambiarTema('normal');
                     hablar("Abriendo Calendario.");
                     setTimeout(() => { window.open("https://calendar.google.com", "_blank"); }, 800);
                 }
                 else if (speechResult.includes("canva")) {
+                    if (modoSueno) cambiarTema('normal');
                     hablar("Abriendo Canva.");
                     setTimeout(() => { window.open("https://www.canva.com", "_blank"); }, 800);
                 }
                 else if (speechResult.includes("whatsapp") || speechResult.includes("wasap")) {
+                    if (modoSueno) cambiarTema('normal');
                     hablar("Abriendo WhatsApp Web.");
                     setTimeout(() => { window.open("https://web.whatsapp.com", "_blank"); }, 800);
                 }
                 else if (speechResult.includes("gemini") || speechResult.includes("gémini") || speechResult.includes("geminis") || speechResult.includes("jemini")) {
+                    if (modoSueno) cambiarTema('normal');
                     hablar("Abriendo Gemini.");
                     setTimeout(() => { window.open("https://gemini.google.com", "_blank"); }, 800);
                 }
             };
 
-            // REINICIO AUTOMÁTICO AL APAGARSE EL MICRÓFONO
             recognition.onend = function() {
                 if (activadoPorUsuario) {
                     try { recognition.start(); } catch(e) {}
