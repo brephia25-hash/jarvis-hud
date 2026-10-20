@@ -40,6 +40,7 @@ hud_html = """
             align-items: center;
             height: 100vh;
             font-family: 'Consolas', monospace;
+            transition: background-color 0.5s ease;
         }
         .hud-container {
             position: relative;
@@ -68,6 +69,7 @@ hud_html = """
             color: #ffffff;
             text-shadow: 0 0 20px #00f3ff, 0 0 40px #00f3ff;
             font-weight: 800;
+            transition: color 0.5s ease, text-shadow 0.5s ease;
         }
         .core-text p {
             margin: 10px 0 0 0;
@@ -75,6 +77,7 @@ hud_html = """
             color: #38bdf8;
             letter-spacing: 4px;
             text-transform: uppercase;
+            transition: color 0.5s ease;
         }
         .status-bar {
             position: absolute;
@@ -89,6 +92,7 @@ hud_html = """
             border-radius: 4px;
             box-shadow: 0 0 10px rgba(0, 243, 255, 0.2);
             cursor: pointer;
+            transition: border-color 0.5s ease, color 0.5s ease;
         }
     </style>
 </head>
@@ -117,14 +121,43 @@ hud_html = """
         let angleInner = 0;
         let angleOuter = 0;
 
+        let theme = {
+            primary: '#00f3ff',
+            secondary: '#38bdf8',
+            darkLine: '#0284c7',
+            coreGlow: 'rgba(0, 243, 255, 0.9)'
+        };
+
+        function cambiarTema(modo) {
+            if (modo === 'sigilo') {
+                theme.primary = '#ff2a2a';
+                theme.secondary = '#f87171';
+                theme.darkLine = '#991b1b';
+                theme.coreGlow = 'rgba(255, 42, 42, 0.9)';
+                document.getElementById('jarvisTitle').style.textShadow = "0 0 20px #ff2a2a, 0 0 40px #ff2a2a";
+                document.getElementById('jarvisTitle').style.color = "#ffffff";
+                document.getElementById('jarvisStatus').style.color = "#f87171";
+            } else {
+                theme.primary = '#00f3ff';
+                theme.secondary = '#38bdf8';
+                theme.darkLine = '#0284c7';
+                theme.coreGlow = 'rgba(0, 243, 255, 0.9)';
+                document.getElementById('jarvisTitle').style.textShadow = "0 0 20px #00f3ff, 0 0 40px #00f3ff";
+                document.getElementById('jarvisTitle').style.color = "#ffffff";
+                document.getElementById('jarvisStatus').style.color = "#38bdf8";
+            }
+        }
+
+        let timerInterval = null;
+        let tiempoRestanteSegundos = 0;
+
         function drawCircuitLines(cx, cy) {
             ctx.save();
-            ctx.strokeStyle = '#0284c7';
+            ctx.strokeStyle = theme.darkLine;
             ctx.lineWidth = 1.5;
             ctx.shadowBlur = 8;
-            ctx.shadowColor = '#00f3ff';
+            ctx.shadowColor = theme.primary;
 
-            // Circuitos Izquierda
             ctx.beginPath();
             ctx.moveTo(0, cy - 100);
             ctx.lineTo(cx - 280, cy - 100);
@@ -139,11 +172,9 @@ hud_html = """
             ctx.lineTo(cx - 210, cy + 60);
             ctx.stroke();
 
-            // Nodos esquinas circulares
             drawTargetNode(80, cy - 180);
             drawTargetNode(80, cy + 180);
 
-            // Circuitos Derecha
             ctx.beginPath();
             ctx.moveTo(canvas.width, cy - 120);
             ctx.lineTo(cx + 280, cy - 120);
@@ -167,17 +198,17 @@ hud_html = """
         function drawTargetNode(x, y) {
             ctx.beginPath();
             ctx.arc(x, y, 22, 0, Math.PI * 2);
-            ctx.strokeStyle = '#00f3ff';
+            ctx.strokeStyle = theme.primary;
             ctx.stroke();
 
             ctx.beginPath();
             ctx.arc(x, y, 14, 0, Math.PI * 2);
-            ctx.strokeStyle = '#38bdf8';
+            ctx.strokeStyle = theme.secondary;
             ctx.stroke();
 
             ctx.beginPath();
             ctx.arc(x, y, 4, 0, Math.PI * 2);
-            ctx.fillStyle = '#00f3ff';
+            ctx.fillStyle = theme.primary;
             ctx.fill();
         }
 
@@ -186,21 +217,19 @@ hud_html = """
             let cx = canvas.width / 2;
             let cy = canvas.height / 2;
 
-            // Dibujar líneas estilo PCB / Circuito de fondo
             drawCircuitLines(cx, cy);
 
             angleMain += 0.005;
             angleInner -= 0.008;
             angleOuter += 0.003;
 
-            // 1. Anillo Exterior Principal con Cortes
             ctx.save();
             ctx.translate(cx, cy);
             ctx.rotate(angleOuter);
-            ctx.strokeStyle = '#00f3ff';
+            ctx.strokeStyle = theme.primary;
             ctx.lineWidth = 2.5;
             ctx.shadowBlur = 12;
-            ctx.shadowColor = '#00f3ff';
+            ctx.shadowColor = theme.primary;
 
             ctx.beginPath();
             ctx.arc(0, 0, 220, 0, Math.PI * 1.4);
@@ -211,11 +240,10 @@ hud_html = """
             ctx.stroke();
             ctx.restore();
 
-            // 2. Anillo de Escala Graduada (Ticks/Medidores de precisión)
             ctx.save();
             ctx.translate(cx, cy);
             ctx.rotate(angleInner);
-            ctx.strokeStyle = '#38bdf8';
+            ctx.strokeStyle = theme.secondary;
             ctx.lineWidth = 1.5;
             for (let i = 0; i < 72; i++) {
                 ctx.beginPath();
@@ -231,11 +259,10 @@ hud_html = """
             }
             ctx.restore();
 
-            // 3. Bloques de Barras Radiales (Estilo Ecualizador)
             ctx.save();
             ctx.translate(cx, cy);
             ctx.rotate(angleMain);
-            ctx.fillStyle = '#00f3ff';
+            ctx.fillStyle = theme.primary;
             for (let i = 0; i < 30; i++) {
                 let angle = (i * 4) * Math.PI / 180 + Math.PI;
                 let x = Math.cos(angle) * 165;
@@ -244,11 +271,10 @@ hud_html = """
             }
             ctx.restore();
 
-            // 4. Cadena Digital de Ceros "0000000000"
             ctx.save();
             ctx.translate(cx, cy);
             ctx.rotate(-angleMain * 1.2);
-            ctx.fillStyle = '#0ea5e9';
+            ctx.fillStyle = theme.secondary;
             ctx.font = '10px Consolas';
             let textoCeros = "0000000000000000";
             for (let i = 0; i < textoCeros.length; i++) {
@@ -259,16 +285,15 @@ hud_html = """
             }
             ctx.restore();
 
-            // 5. Núcleo Interno Sólido
             ctx.save();
             ctx.beginPath();
             ctx.arc(cx, cy, 110, 0, Math.PI * 2);
             ctx.fillStyle = 'rgba(2, 11, 24, 0.95)';
             ctx.fill();
-            ctx.strokeStyle = '#00f3ff';
+            ctx.strokeStyle = theme.primary;
             ctx.lineWidth = 3;
             ctx.shadowBlur = 15;
-            ctx.shadowColor = '#00f3ff';
+            ctx.shadowColor = theme.primary;
             ctx.stroke();
             ctx.restore();
 
@@ -287,7 +312,40 @@ hud_html = """
             }, 100);
         }
 
-        // Gestión de Tareas
+        function iniciarTemporizadorEnfoque(minutos) {
+            if (timerInterval) clearInterval(timerInterval);
+            tiempoRestanteSegundos = minutos * 60;
+
+            hablar("Iniciando sesión de enfoque por " + minutos + " minutos. Concentración activada.");
+
+            timerInterval = setInterval(() => {
+                if (tiempoRestanteSegundos <= 0) {
+                    clearInterval(timerInterval);
+                    timerInterval = null;
+                    document.getElementById('jarvisStatus').innerText = "TIEMPO FINALIZADO";
+                    hablar("Tiempo de enfoque finalizado. Es momento de tomar un descanso.");
+                } else {
+                    tiempoRestanteSegundos--;
+                    let m = Math.floor(tiempoRestanteSegundos / 60);
+                    let s = tiempoRestanteSegundos % 60;
+                    let mFormato = m < 10 ? "0" + m : m;
+                    let sFormato = s < 10 ? "0" + s : s;
+                    document.getElementById('jarvisStatus').innerText = "ENFOQUE: " + mFormato + ":" + sFormato;
+                }
+            }, 1000);
+        }
+
+        function detenerTemporizadorEnfoque() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+                document.getElementById('jarvisStatus').innerText = "TEMPORIZADOR DETENIDO";
+                hablar("Sesión de enfoque cancelada.");
+            } else {
+                hablar("No hay ninguna sesión de enfoque activa.");
+            }
+        }
+
         function obtenerTareas() {
             return JSON.parse(localStorage.getItem('jarvis_tareas') || '[]');
         }
@@ -298,11 +356,57 @@ hud_html = """
             localStorage.setItem('jarvis_tareas', JSON.stringify(tareas));
         }
 
+        function eliminarTareaUnica(criterio) {
+            let tareas = obtenerTareas();
+            if (tareas.length === 0) return { exito: false, mensaje: "No hay tareas registradas." };
+
+            let numero = parseInt(criterio);
+            if (!isNaN(numero) && numero > 0 && numero <= tareas.length) {
+                let borrada = tareas.splice(numero - 1, 1)[0];
+                localStorage.setItem('jarvis_tareas', JSON.stringify(tareas));
+                return { exito: true, mensaje: "Tarea " + numero + " eliminada: " + borrada };
+            }
+
+            let indiceEncontrado = tareas.findIndex(t => t.toLowerCase().includes(criterio.toLowerCase()));
+            if (indiceEncontrado !== -1) {
+                let borrada = tareas.splice(indiceEncontrado, 1)[0];
+                localStorage.setItem('jarvis_tareas', JSON.stringify(tareas));
+                return { exito: true, mensaje: "Tarea eliminada: " + borrada };
+            }
+
+            return { exito: false, mensaje: "No encontré ninguna tarea con ese número o nombre." };
+        }
+
         function limpiarTareas() {
             localStorage.removeItem('jarvis_tareas');
         }
 
-        // Gestión de Horarios
+        function obtenerNotas() {
+            return JSON.parse(localStorage.getItem('jarvis_notas') || '[]');
+        }
+
+        function guardarNota(nota) {
+            let notas = obtenerNotas();
+            notas.push(nota);
+            localStorage.setItem('jarvis_notas', JSON.stringify(notas));
+        }
+
+        function limpiarNotas() {
+            localStorage.removeItem('jarvis_notas');
+        }
+
+        async function obtenerClima() {
+            try {
+                const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=10.48801&longitude=-66.87919&current_weather=true');
+                const data = await res.json();
+                if (data && data.current_weather) {
+                    let temp = Math.round(data.current_weather.temperature);
+                    return "La temperatura actual en Caracas es de " + temp + " grados centígrados.";
+                }
+            } catch(e) {}
+            return "No pude obtener la información del clima en este momento.";
+        }
+
         function registrarMomento(tipo) {
             const ahora = new Date();
             const horaFormateada = ahora.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -317,7 +421,6 @@ hud_html = """
             return data ? JSON.parse(data) : null;
         }
 
-        // Reconocimiento de Voz
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (SpeechRecognition) {
             const recognition = new SpeechRecognition();
@@ -325,12 +428,29 @@ hud_html = """
             recognition.continuous = true;
             recognition.interimResults = false;
 
-            recognition.onresult = function(event) {
+            recognition.onresult = async function(event) {
                 const speechResult = event.results[event.results.length - 1][0].transcript.toLowerCase().trim();
                 document.getElementById('jarvisStatus').innerText = "COMANDO: " + speechResult.toUpperCase();
                 
-                // 1. CONSULTAS DE HORARIO
-                if (speechResult.includes("desperté") || speechResult.includes("desperte") || speechResult.includes("levanté") || speechResult.includes("levante") || speechResult.includes("hora de inicio")) {
+                let comandoReconocido = false;
+
+                // 1. REFORMAS Y MEJORAS (NUEVO GUIÑO)
+                if (speechResult.includes("reformas") || speechResult.includes("mejoras") || speechResult.includes("actualización") || speechResult.includes("actualizacion")) {
+                    comandoReconocido = true;
+                    document.getElementById('jarvisStatus').innerText = "MODO OPTIMIZACIÓN";
+                    hablar("Entendido, Señor. Estaré esperando mis próximas mejoras para optimizar mis sistemas.");
+                }
+
+                // 2. LISTA DE COMANDOS Y FUNCIONES
+                else if (speechResult.includes("qué puedes hacer") || speechResult.includes("que puedes hacer") || speechResult.includes("cuáles son tus funciones") || speechResult.includes("cuales son tus funciones") || speechResult.includes("lista de comandos") || speechResult.includes("manual de funciones")) {
+                    comandoReconocido = true;
+                    document.getElementById('jarvisStatus').innerText = "MOSTRANDO FUNCIONES";
+                    hablar("Mis capacidades principales incluyen: registrar su horario de descanso y despertar, gestionar sus tareas y notas rápidas, iniciar sesiones de enfoque con temporizador, informar el clima local, reproducir música en YouTube, cambiar a modo sigilo y abrir sus plataformas habituales.");
+                }
+
+                // 3. CONSULTAS DE HORARIO
+                else if (speechResult.includes("desperté") || speechResult.includes("desperte") || speechResult.includes("levanté") || speechResult.includes("levante") || speechResult.includes("hora de inicio")) {
+                    comandoReconocido = true;
                     let reg = obtenerMomento('despertar');
                     if (!reg) {
                         hablar("No tengo registrado el inicio de su jornada reciente.");
@@ -339,6 +459,7 @@ hud_html = """
                     }
                 }
                 else if (speechResult.includes("a qué hora me dormí") || speechResult.includes("a que hora me dormi") || speechResult.includes("cuándo descansé") || speechResult.includes("cuando me dormi")) {
+                    comandoReconocido = true;
                     let reg = obtenerMomento('dormir');
                     if (!reg) {
                         hablar("No tengo registrado un horario de descanso reciente.");
@@ -347,22 +468,110 @@ hud_html = """
                     }
                 }
 
-                // 2. ACTIVACIÓN E INICIO
+                // 4. ACTIVACIÓN E INICIO
                 else if (speechResult.includes("buenos días") || speechResult.includes("buenos dias") || speechResult.includes("buenas noches") || speechResult.includes("hola jarvis")) {
+                    comandoReconocido = true;
                     let hora = registrarMomento('despertar');
                     hablar("Saludos. Sistemas en línea. Inicio de actividad registrado a las " + hora);
                     setTimeout(() => { document.getElementById('jarvisStatus').innerText = "SISTEMA ACTIVO"; }, 4000);
                 } 
 
-                // 3. MODO REPOSO / DESCANSO
+                // 5. MODO REPOSO / DESCANSO
                 else if (speechResult === "dormir" || speechResult === "descansar" || speechResult.includes("modo descanso") || speechResult.includes("ir a dormir") || speechResult.includes("ir a descansar")) {
+                    comandoReconocido = true;
                     let hora = registrarMomento('dormir');
                     hablar("Entendido. Hora de descanso registrada a las " + hora + ". Que tenga un buen descanso.");
                     setTimeout(() => { document.getElementById('jarvisStatus').innerText = "SISTEMA EN REPOSO"; }, 4000);
                 }
 
-                // 4. COMANDOS DE AGENDA Y TAREAS
+                // 6. CONTROL DE MODO VISUAL HUD
+                else if (speechResult.includes("modo sigiloso") || speechResult.includes("protocolo nocturno") || speechResult.includes("modo rojo")) {
+                    comandoReconocido = true;
+                    cambiarTema('sigilo');
+                    document.getElementById('jarvisStatus').innerText = "MODO SIGILO ACTIVO";
+                    hablar("Protocolo nocturno activado. Ajustando espectro visual.");
+                }
+                else if (speechResult.includes("modo normal") || speechResult.includes("protocolo estándar") || speechResult.includes("modo cian")) {
+                    comandoReconocido = true;
+                    cambiarTema('normal');
+                    document.getElementById('jarvisStatus').innerText = "MODO ESTÁNDAR";
+                    hablar("Sistemas restaurados a interfaz estándar.");
+                }
+
+                // 7. TEMPORIZADOR DE ENFOQUE (POMODORO)
+                else if (speechResult.includes("iniciar sesión de estudio") || speechResult.includes("iniciar sesion de estudio") || speechResult.includes("modo enfoque") || speechResult.includes("temporizador de")) {
+                    comandoReconocido = true;
+                    let numeros = speechResult.match(/\d+/);
+                    let minutos = numeros ? parseInt(numeros[0]) : 25;
+                    iniciarTemporizadorEnfoque(minutos);
+                }
+                else if (speechResult.includes("cancelar temporizador") || speechResult.includes("detener enfoque") || speechResult.includes("cancelar enfoque")) {
+                    comandoReconocido = true;
+                    detenerTemporizadorEnfoque();
+                }
+
+                // 8. BLOC DE NOTAS RÁPIDO POR VOZ
+                else if (speechResult.includes("anota nota") || speechResult.includes("guarda la nota") || speechResult.includes("nueva nota")) {
+                    comandoReconocido = true;
+                    let notaText = speechResult
+                        .replace("anota nota", "")
+                        .replace("guarda la nota", "")
+                        .replace("nueva nota", "")
+                        .trim();
+                    if (notaText.length > 0) {
+                        guardarNota(notaText);
+                        document.getElementById('jarvisStatus').innerText = "NOTA GUARDADA";
+                        hablar("Nota registrada: " + notaText);
+                    } else {
+                        hablar("Por favor especifique el contenido de la nota.");
+                    }
+                }
+                else if (speechResult.includes("mis notas") || speechResult.includes("lee mis notas") || speechResult.includes("cuáles son mis notas")) {
+                    comandoReconocido = true;
+                    let notas = obtenerNotas();
+                    if (notas.length === 0) {
+                        hablar("No tiene notas registradas.");
+                    } else {
+                        hablar("Sus notas son: " + notas.join(". "));
+                    }
+                }
+                else if (speechResult.includes("limpiar notas") || speechResult.includes("borrar notas")) {
+                    comandoReconocido = true;
+                    limpiarNotas();
+                    hablar("Notas eliminadas con éxito.");
+                }
+
+                // 9. INFORME METEOROLÓGICO
+                else if (speechResult.includes("clima") || speechResult.includes("reporte meteorológico") || speechResult.includes("temperatura")) {
+                    comandoReconocido = true;
+                    document.getElementById('jarvisStatus').innerText = "CONSULTANDO CLIMA...";
+                    let reporte = await obtenerClima();
+                    document.getElementById('jarvisStatus').innerText = "SISTEMA ACTIVO";
+                    hablar(reporte);
+                }
+
+                // 10. ELIMINAR UNA SOLA TAREA
+                else if (speechResult.includes("eliminar tarea") || speechResult.includes("borrar tarea") || speechResult.includes("quitar tarea")) {
+                    comandoReconocido = true;
+                    let criterio = speechResult
+                        .replace("eliminar tarea", "")
+                        .replace("borrar tarea", "")
+                        .replace("quitar tarea", "")
+                        .replace("número", "")
+                        .replace("numero", "")
+                        .trim();
+                    if (criterio.length > 0) {
+                        let res = eliminarTareaUnica(criterio);
+                        document.getElementById('jarvisStatus').innerText = res.exito ? "TAREA ELIMINADA" : "ERROR";
+                        hablar(res.mensaje);
+                    } else {
+                        hablar("Por favor especifique el número o nombre de la tarea que desea eliminar.");
+                    }
+                }
+
+                // 11. COMANDOS GENERALES DE AGENDA
                 else if (speechResult.includes("agregar tarea") || speechResult.includes("añadir pendiente") || speechResult.includes("agrega la tarea")) {
+                    comandoReconocido = true;
                     let nuevaTarea = speechResult
                         .replace("agregar tarea", "")
                         .replace("añadir pendiente", "")
@@ -377,6 +586,7 @@ hud_html = """
                     }
                 }
                 else if (speechResult.includes("mis pendientes") || speechResult.includes("mis tareas") || speechResult.includes("lee mis tareas") || speechResult.includes("cuáles son mis tareas") || speechResult.includes("cuales son mis tareas")) {
+                    comandoReconocido = true;
                     let lista = obtenerTareas();
                     if (lista.length === 0) {
                         document.getElementById('jarvisStatus').innerText = "SIN PENDIENTES";
@@ -390,14 +600,16 @@ hud_html = """
                         hablar(textoPendientes);
                     }
                 }
-                else if (speechResult.includes("limpiar tareas") || speechResult.includes("borrar pendientes") || speechResult.includes("borrar tareas")) {
+                else if (speechResult.includes("limpiar tareas") || speechResult.includes("borrar pendientes") || speechResult.includes("borrar todas las tareas")) {
+                    comandoReconocido = true;
                     limpiarTareas();
                     document.getElementById('jarvisStatus').innerText = "AGENDA LIMPIA";
                     hablar("Agenda de tareas reiniciada con éxito.");
                 }
 
-                // 5. REPRODUCTOR DE MÚSICA POR VOZ
+                // 12. REPRODUCTOR DE MÚSICA POR VOZ
                 else if (speechResult.includes("reproduce") || speechResult.includes("reproducir")) {
+                    comandoReconocido = true;
                     let cancion = speechResult
                         .replace("reproduce", "")
                         .replace("reproducir", "")
@@ -413,34 +625,47 @@ hud_html = """
                     }
                 }
 
-                // 6. APERTURA DE PLATAFORMAS
+                // 13. APERTURA DE PLATAFORMAS
+                else if (speechResult.includes("pinterest") || speechResult.includes("pinteres")) {
+                    comandoReconocido = true;
+                    hablar("Abriendo Pinterest.");
+                    setTimeout(() => { window.open("https://www.pinterest.com", "_blank"); }, 800);
+                }
                 else if (speechResult.includes("youtube") || speechResult.includes("llutub")) {
+                    comandoReconocido = true;
                     hablar("Abriendo YouTube.");
                     setTimeout(() => { window.open("https://www.youtube.com", "_blank"); }, 800);
                 }
                 else if (speechResult.includes("notion") || speechResult.includes("nocion") || speechResult.includes("noishon")) {
+                    comandoReconocido = true;
                     hablar("Abriendo Notion.");
                     setTimeout(() => { window.open("https://www.notion.so", "_blank"); }, 800);
                 }
                 else if (speechResult.includes("calendario")) {
+                    comandoReconocido = true;
                     hablar("Abriendo Calendario.");
                     setTimeout(() => { window.open("https://calendar.google.com", "_blank"); }, 800);
                 }
                 else if (speechResult.includes("canva")) {
+                    comandoReconocido = true;
                     hablar("Abriendo Canva.");
                     setTimeout(() => { window.open("https://www.canva.com", "_blank"); }, 800);
                 }
                 else if (speechResult.includes("whatsapp") || speechResult.includes("wasap")) {
+                    comandoReconocido = true;
                     hablar("Abriendo WhatsApp Web.");
                     setTimeout(() => { window.open("https://web.whatsapp.com", "_blank"); }, 800);
                 }
                 else if (speechResult.includes("gemini") || speechResult.includes("gémini") || speechResult.includes("geminis") || speechResult.includes("jemini")) {
+                    comandoReconocido = true;
                     hablar("Abriendo Gemini.");
                     setTimeout(() => { window.open("https://gemini.google.com", "_blank"); }, 800);
                 }
-                else if (speechResult.includes("temporizador")) {
-                    hablar("Abriendo temporizador de Google.");
-                    setTimeout(() => { window.open("https://www.google.com/search?q=temporizador", "_blank"); }, 800);
+
+                // 14. RESPUESTA POR DEFECTO PARA COMANDOS NO RECONOCIDOS
+                if (!comandoReconocido) {
+                    document.getElementById('jarvisStatus').innerText = "COMANDO DESCONOCIDO";
+                    hablar("No soy capaz actualmente de realizar esta tarea");
                 }
             };
 
