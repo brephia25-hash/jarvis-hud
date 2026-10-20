@@ -188,7 +188,7 @@ hud_html = """
             localStorage.removeItem('jarvis_tareas');
         }
 
-        // Gestión de Horarios de Sueño y Despertar
+        // Gestión de Horarios
         function registrarMomento(tipo) {
             const ahora = new Date();
             const horaFormateada = ahora.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -215,28 +215,8 @@ hud_html = """
                 const speechResult = event.results[event.results.length - 1][0].transcript.toLowerCase().trim();
                 document.getElementById('jarvisStatus').innerText = "COMANDO: " + speechResult.toUpperCase();
                 
-                // Activación e Inicio
-                if (speechResult.includes("buenos días") || speechResult.includes("buenas noches") || speechResult.includes("hola jarvis")) {
-                    let hora = registrarMomento('despertar');
-                    hablar("Saludos. Sistemas en línea. Inicio de actividad registrado a las " + hora);
-                    setTimeout(() => { document.getElementById('jarvisStatus').innerText = "SISTEMA ACTIVO"; }, 4000);
-                } 
-                // Reposo
-                else if (speechResult.includes("descansar") || speechResult.includes("dormir")) {
-                    let hora = registrarMomento('dormir');
-                    hablar("Entendido. Hora de descanso registrada a las " + hora + ". Que tenga un buen descanso.");
-                    setTimeout(() => { document.getElementById('jarvisStatus').innerText = "SISTEMA EN REPOSO"; }, 4000);
-                }
-                // Consultar Horarios
-                else if (speechResult.includes("a qué hora me dormí") || speechResult.includes("cuándo descansé")) {
-                    let reg = obtenerMomento('dormir');
-                    if (!reg) {
-                        hablar("No tengo registrado un horario de descanso reciente.");
-                    } else {
-                        hablar("Se registró que se fue a descansar a las " + reg.hora + " del día " + reg.fecha);
-                    }
-                }
-                else if (speechResult.includes("a qué hora desperté") || speechResult.includes("mi hora de inicio")) {
+                // 1. CONSULTAS DE HORARIO (Evaluadas primero para evitar confusiones de palabras similares)
+                if (speechResult.includes("desperté") || speechResult.includes("desperte") || speechResult.includes("levanté") || speechResult.includes("levante") || speechResult.includes("hora de inicio")) {
                     let reg = obtenerMomento('despertar');
                     if (!reg) {
                         hablar("No tengo registrado el inicio de su jornada reciente.");
@@ -244,7 +224,30 @@ hud_html = """
                         hablar("Inició actividad a las " + reg.hora + " del día " + reg.fecha);
                     }
                 }
-                // Comandos de Tareas (Corregido y optimizado)
+                else if (speechResult.includes("a qué hora me dormí") || speechResult.includes("a que hora me dormi") || speechResult.includes("cuándo descansé") || speechResult.includes("cuando me dormi")) {
+                    let reg = obtenerMomento('dormir');
+                    if (!reg) {
+                        hablar("No tengo registrado un horario de descanso reciente.");
+                    } else {
+                        hablar("Se registró que se fue a descansar a las " + reg.hora + " del día " + reg.fecha);
+                    }
+                }
+
+                // 2. ACTIVACIÓN E INICIO
+                else if (speechResult.includes("buenos días") || speechResult.includes("buenos dias") || speechResult.includes("buenas noches") || speechResult.includes("hola jarvis")) {
+                    let hora = registrarMomento('despertar');
+                    hablar("Saludos. Sistemas en línea. Inicio de actividad registrado a las " + hora);
+                    setTimeout(() => { document.getElementById('jarvisStatus').innerText = "SISTEMA ACTIVO"; }, 4000);
+                } 
+
+                // 3. MODO REPOSO / DESCANSO (Palabras estrictas)
+                else if (speechResult === "dormir" || speechResult === "descansar" || speechResult.includes("modo descanso") || speechResult.includes("ir a dormir") || speechResult.includes("ir a descansar")) {
+                    let hora = registrarMomento('dormir');
+                    hablar("Entendido. Hora de descanso registrada a las " + hora + ". Que tenga un buen descanso.");
+                    setTimeout(() => { document.getElementById('jarvisStatus').innerText = "SISTEMA EN REPOSO"; }, 4000);
+                }
+
+                // 4. COMANDOS DE AGENDA Y TAREAS
                 else if (speechResult.includes("agregar tarea") || speechResult.includes("añadir pendiente") || speechResult.includes("agrega la tarea")) {
                     let nuevaTarea = speechResult
                         .replace("agregar tarea", "")
@@ -259,7 +262,7 @@ hud_html = """
                         hablar("Por favor especifique la tarea que desea agregar.");
                     }
                 }
-                else if (speechResult.includes("mis pendientes") || speechResult.includes("mis tareas") || speechResult.includes("lee mis tareas") || speechResult.includes("cuáles son mis tareas")) {
+                else if (speechResult.includes("mis pendientes") || speechResult.includes("mis tareas") || speechResult.includes("lee mis tareas") || speechResult.includes("cuáles son mis tareas") || speechResult.includes("cuales son mis tareas")) {
                     let lista = obtenerTareas();
                     if (lista.length === 0) {
                         document.getElementById('jarvisStatus').innerText = "SIN PENDIENTES";
@@ -278,34 +281,35 @@ hud_html = """
                     document.getElementById('jarvisStatus').innerText = "AGENDA LIMPIA";
                     hablar("Agenda de tareas reiniciada con éxito.");
                 }
-                // Apertura de Plataformas
-                else if (speechResult.includes("youtube")) {
+
+                // 5. APERTURA DE PLATAFORMAS (Acepta múltiples pronunciaciones)
+                else if (speechResult.includes("youtube") || speechResult.includes("llutub")) {
                     hablar("Abriendo YouTube.");
-                    setTimeout(() => { window.open("https://www.youtube.com", "_blank"); }, 1000);
+                    setTimeout(() => { window.open("https://www.youtube.com", "_blank"); }, 800);
                 }
-                else if (speechResult.includes("notion")) {
+                else if (speechResult.includes("notion") || speechResult.includes("nocion") || speechResult.includes("noishon")) {
                     hablar("Abriendo Notion.");
-                    setTimeout(() => { window.open("https://www.notion.so", "_blank"); }, 1000);
+                    setTimeout(() => { window.open("https://www.notion.so", "_blank"); }, 800);
                 }
                 else if (speechResult.includes("calendario")) {
                     hablar("Abriendo Calendario.");
-                    setTimeout(() => { window.open("https://calendar.google.com", "_blank"); }, 1000);
+                    setTimeout(() => { window.open("https://calendar.google.com", "_blank"); }, 800);
                 }
                 else if (speechResult.includes("canva")) {
                     hablar("Abriendo Canva.");
-                    setTimeout(() => { window.open("https://www.canva.com", "_blank"); }, 1000);
+                    setTimeout(() => { window.open("https://www.canva.com", "_blank"); }, 800);
                 }
-                else if (speechResult.includes("whatsapp")) {
+                else if (speechResult.includes("whatsapp") || speechResult.includes("wasap")) {
                     hablar("Abriendo WhatsApp Web.");
-                    setTimeout(() => { window.open("https://web.whatsapp.com", "_blank"); }, 1000);
+                    setTimeout(() => { window.open("https://web.whatsapp.com", "_blank"); }, 800);
                 }
-                else if (speechResult.includes("gemini")) {
+                else if (speechResult.includes("gemini") || speechResult.includes("gémini") || speechResult.includes("geminis") || speechResult.includes("jemini")) {
                     hablar("Abriendo Gemini.");
-                    setTimeout(() => { window.open("https://gemini.google.com", "_blank"); }, 1000);
+                    setTimeout(() => { window.open("https://gemini.google.com", "_blank"); }, 800);
                 }
                 else if (speechResult.includes("temporizador")) {
                     hablar("Abriendo temporizador de Google.");
-                    setTimeout(() => { window.open("https://www.google.com/search?q=temporizador", "_blank"); }, 1000);
+                    setTimeout(() => { window.open("https://www.google.com/search?q=temporizador", "_blank"); }, 800);
                 }
             };
 
