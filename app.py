@@ -9,12 +9,30 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
+# Estilo para centrado absoluto y eliminación de márgenes superiores
 hide_streamlit_style = """
     <style>
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
-    .stApp { background-color: #000000; overflow: hidden; }
+    .block-container {
+        padding-top: 0rem !important;
+        padding-bottom: 0rem !important;
+        padding-left: 0rem !important;
+        padding-right: 0rem !important;
+        max-width: 100% !important;
+    }
+    .stApp { 
+        background-color: #000000; 
+        overflow: hidden !important; 
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+    iframe {
+        display: block;
+        border: none;
+        margin: 0 auto;
+    }
     </style>
 """
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
@@ -31,16 +49,21 @@ hud_html = """
 <head>
     <meta charset="UTF-8">
     <style>
-        body {
+        * {
+            box-sizing: border-box;
+        }
+        html, body {
             background-color: #010a17;
             margin: 0;
+            padding: 0;
+            width: 100vw;
+            height: 100vh;
             overflow: hidden;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
             font-family: 'Consolas', monospace;
-            transition: background-color 1.5s ease;
+            transition: background-color 1s ease;
         }
         .hud-container {
             position: relative;
@@ -54,7 +77,7 @@ hud_html = """
             position: absolute;
             top: 0;
             left: 0;
-            transition: opacity 1.5s ease;
+            transition: opacity 1s ease;
         }
         .core-text {
             position: absolute;
@@ -65,12 +88,12 @@ hud_html = """
         }
         .core-text h1 {
             margin: 0;
-            font-size: 36px;
-            letter-spacing: 7px;
+            font-size: 38px;
+            letter-spacing: 8px;
             color: #ffffff;
             text-shadow: 0 0 20px #00f3ff, 0 0 40px #00f3ff;
             font-weight: 800;
-            transition: color 1.5s ease, text-shadow 1.5s ease;
+            transition: color 1s ease, text-shadow 1s ease;
         }
         .core-text p {
             margin: 8px 0 0 0;
@@ -78,35 +101,34 @@ hud_html = """
             color: #38bdf8;
             letter-spacing: 4px;
             text-transform: uppercase;
-            transition: color 1.5s ease;
+            transition: color 1s ease;
         }
         .status-bar {
             position: absolute;
-            bottom: 20px;
+            bottom: 25px;
             color: #0ea5e9;
             font-size: 11px;
             letter-spacing: 3px;
             text-transform: uppercase;
             background: rgba(1, 10, 23, 0.85);
-            padding: 8px 18px;
+            padding: 8px 20px;
             border: 1px solid #00f3ff44;
             border-radius: 4px;
             box-shadow: 0 0 12px rgba(0, 243, 255, 0.25);
             cursor: pointer;
-            transition: opacity 1.5s ease, border-color 1.5s ease, color 1.5s ease;
+            transition: opacity 1s ease, border-color 1s ease, color 1s ease;
             z-index: 20;
         }
-        /* PANEL DE DIAGNÓSTICO EN LA ESQUINA SUPERIOR DERECHA */
         .diagnostic-panel {
             position: absolute;
-            top: 25px;
+            top: 20px;
             right: 25px;
             background: rgba(1, 10, 23, 0.85);
             border: 1px solid #00f3ff55;
             border-radius: 6px;
-            padding: 12px 18px;
+            padding: 10px 16px;
             color: #00f3ff;
-            font-size: 12px;
+            font-size: 11px;
             letter-spacing: 2px;
             box-shadow: 0 0 15px rgba(0, 243, 255, 0.2);
             z-index: 20;
@@ -118,7 +140,7 @@ hud_html = """
             font-weight: bold;
             color: #ffffff;
             text-shadow: 0 0 8px #00f3ff;
-            margin-bottom: 4px;
+            margin-bottom: 2px;
         }
         .diagnostic-panel .sys-info {
             font-size: 10px;
@@ -152,7 +174,6 @@ hud_html = """
         window.addEventListener('resize', resize);
         resize();
 
-        // Reloj en tiempo real para el panel de diagnóstico superior derecho
         setInterval(() => {
             const now = new Date();
             document.getElementById('hudClock').innerText = now.toLocaleTimeString();
@@ -173,7 +194,6 @@ hud_html = """
             glow: 'rgba(0, 243, 255, 0.9)'
         };
 
-        // Generador de pitido sutil de confirmación (SFX)
         function emitirPitido() {
             if (modoSilencio) return;
             try {
@@ -181,13 +201,13 @@ hud_html = """
                 const osc = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
                 osc.type = 'sine';
-                osc.frequency.setValueAtTime(1200, audioCtx.currentTime); // Frecuencia aguda limpia
+                osc.frequency.setValueAtTime(1200, audioCtx.currentTime);
                 gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.15);
+                gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.12);
                 osc.connect(gain);
                 gain.connect(audioCtx.destination);
                 osc.start();
-                osc.stop(audioCtx.currentTime + 0.15);
+                osc.stop(audioCtx.currentTime + 0.12);
             } catch(e) {}
         }
 
@@ -457,14 +477,14 @@ hud_html = """
                 timerInterval = null;
             }
             tiempoRestanteSegundos = minutos * 60;
-            hablar("Iniciando sesión de enfoque por " + minutos + " minutos.");
+            hablar("Enfoque activado: " + minutos + " minutos.");
 
             timerInterval = setInterval(() => {
                 if (tiempoRestanteSegundos <= 0) {
                     clearInterval(timerInterval);
                     timerInterval = null;
                     document.getElementById('jarvisStatus').innerText = "TIEMPO FINALIZADO";
-                    hablar("Tiempo de enfoque finalizado.");
+                    hablar("Tiempo finalizado.");
                 } else {
                     tiempoRestanteSegundos--;
                     let m = Math.floor(tiempoRestanteSegundos / 60);
@@ -560,24 +580,15 @@ hud_html = """
 
             recognition.onresult = async function(event) {
                 const speechResult = event.results[event.results.length - 1][0].transcript.toLowerCase().trim();
-                
-                const tieneActivacion = speechResult.includes("jarvis") || 
-                                        speechResult.includes("yarbi") || 
-                                        speechResult.includes("yarvis") || 
-                                        speechResult.includes("jarbi") || 
-                                        speechResult.includes("arvis");
 
-                if (!tieneActivacion) return;
-
-                // EMITIR PITIDO SUTIL DE CONFIRMACIÓN ANTES DE CADA ORDEN
-                emitirPitido();
-
-                // 1. MODO SILENCIO / MUTE VOZ (NUEVO)
+                // 1. MODO SILENCIO
                 if (speechResult.includes("modo silencio") || speechResult.includes("silenciar voz")) {
+                    emitirPitido();
                     modoSilencio = true;
                     document.getElementById('jarvisStatus').innerText = "MODO SILENCIO";
                 }
                 else if (speechResult.includes("desactivar silencio") || speechResult.includes("activar voz")) {
+                    emitirPitido();
                     modoSilencio = false;
                     document.getElementById('jarvisStatus').innerText = "SISTEMA ACTIVO";
                     hablar("Voz reactivada.");
@@ -585,35 +596,40 @@ hud_html = """
 
                 // 2. MODO REPOSO / SUEÑO
                 else if (speechResult.includes("dormir") || speechResult.includes("descansar") || speechResult.includes("modo descanso") || speechResult.includes("ir a dormir")) {
+                    emitirPitido();
                     let hora = registrarMomento('dormir');
-                    hablar("Entrando en reposo profundo.");
-                    setTimeout(() => { activarModoSueno(); }, 1500);
+                    hablar("Entrando en reposo.");
+                    setTimeout(() => { activarModoSueno(); }, 500);
                 }
 
                 // 3. ACTIVACIÓN / DESPERTAR
                 else if (speechResult.includes("buenos días") || speechResult.includes("buenos dias") || speechResult.includes("buenas noches") || speechResult.includes("hola") || speechResult.includes("despierta")) {
+                    emitirPitido();
                     cambiarTema('normal');
                     let hora = registrarMomento('despertar');
                     hablar("Sistemas en línea.");
-                    setTimeout(() => { document.getElementById('jarvisStatus').innerText = "SISTEMA ACTIVO"; }, 3000);
+                    setTimeout(() => { document.getElementById('jarvisStatus').innerText = "SISTEMA ACTIVO"; }, 1500);
                 }
 
                 // 4. AGRADECIMIENTO
                 else if (speechResult.includes("gracias") || speechResult.includes("agradezco")) {
+                    emitirPitido();
                     if (modoSueno) cambiarTema('normal');
                     document.getElementById('jarvisStatus').innerText = "A SU SERVICIO";
-                    hablar("Siempre a su servicio, Señor.");
+                    hablar("A su servicio.");
                 }
 
                 // 5. REFORMAS Y MEJORAS
                 else if (speechResult.includes("reformas") || speechResult.includes("mejoras") || speechResult.includes("actualización")) {
+                    emitirPitido();
                     if (modoSueno) cambiarTema('normal');
-                    document.getElementById('jarvisStatus').innerText = "MODO OPTIMIZACIÓN";
-                    hablar("Entendido, Señor. Esperando mejoras.");
+                    document.getElementById('jarvisStatus').innerText = "OPTIMIZACIÓN";
+                    hablar("Entendido, Señor.");
                 }
 
                 // 6. MANUAL DE COMANDOS
                 else if (speechResult.includes("qué puedes hacer") || speechResult.includes("que puedes hacer") || speechResult.includes("lista de comandos")) {
+                    emitirPitido();
                     if (modoSueno) cambiarTema('normal');
                     document.getElementById('jarvisStatus').innerText = "MODO MANUAL";
                     hablar("Sistemas activos. Puedo registrar jornadas, gestionar tareas y notas, activar temporizadores, reproducir música, cambiar modos visuales, activar modo silencio, abrir plataformas y buscar en Google.");
@@ -621,6 +637,7 @@ hud_html = """
 
                 // 7. BÚSQUEDA EN GOOGLE
                 else if (speechResult.includes("busca") || speechResult.includes("buscar")) {
+                    emitirPitido();
                     if (modoSueno) cambiarTema('normal');
                     let consulta = speechResult
                         .replace(/jarvis|yarbi|yarvis|jarbi|arvis/g, "")
@@ -630,11 +647,9 @@ hud_html = """
                         .replace("buscar", "")
                         .trim();
                     if (consulta.length > 0) {
-                        hablar("Buscando en Google.");
+                        hablar("Buscando...");
                         document.getElementById('jarvisStatus').innerText = "BUSCANDO...";
-                        setTimeout(() => { 
-                            window.open("https://www.google.com/search?q=" + encodeURIComponent(consulta), "_blank"); 
-                        }, 800);
+                        window.open("https://www.google.com/search?q=" + encodeURIComponent(consulta), "_blank");
                     } else {
                         hablar("Especifique qué buscar.");
                     }
@@ -642,34 +657,40 @@ hud_html = """
 
                 // 8. CONSULTAS DE HORARIO
                 else if (speechResult.includes("desperté") || speechResult.includes("desperte") || speechResult.includes("levanté")) {
+                    emitirPitido();
                     if (modoSueno) cambiarTema('normal');
                     let reg = obtenerMomento('despertar');
-                    hablar(reg ? "Inició actividad a las " + reg.hora : "Sin registro reciente.");
+                    hablar(reg ? "Inició a las " + reg.hora : "Sin registro.");
                 }
                 else if (speechResult.includes("a qué hora me dormí") || speechResult.includes("a que hora me dormi")) {
+                    emitirPitido();
                     if (modoSueno) cambiarTema('normal');
                     let reg = obtenerMomento('dormir');
-                    hablar(reg ? "Se fue a descansar a las " + reg.hora : "Sin registro de descanso.");
+                    hablar(reg ? "Se fue a descansar a las " + reg.hora : "Sin registro.");
                 }
 
-                // 9. MODO VISUAL (SIGILO / NORMAL)
+                // 9. MODO VISUAL
                 else if (speechResult.includes("modo sigiloso") || speechResult.includes("protocolo nocturno")) {
+                    emitirPitido();
                     cambiarTema('sigilo');
                     document.getElementById('jarvisStatus').innerText = "MODO SIGILO";
-                    hablar("Protocolo nocturno activado.");
+                    hablar("Modo sigilo.");
                 }
                 else if (speechResult.includes("modo normal") || speechResult.includes("protocolo estándar")) {
+                    emitirPitido();
                     cambiarTema('normal');
                     document.getElementById('jarvisStatus').innerText = "MODO ESTÁNDAR";
-                    hablar("Espectro visual normal.");
+                    hablar("Modo estándar.");
                 }
 
                 // 10. TEMPORIZADOR
                 else if (speechResult.includes("detener enfoque") || speechResult.includes("cancelar enfoque")) {
+                    emitirPitido();
                     if (modoSueno) cambiarTema('normal');
                     detenerTemporizadorEnfoque();
                 }
                 else if (speechResult.includes("iniciar sesión de estudio") || speechResult.includes("modo enfoque")) {
+                    emitirPitido();
                     if (modoSueno) cambiarTema('normal');
                     let numeros = speechResult.match(/\d+/);
                     let minutos = numeros ? parseInt(numeros[0]) : 25;
@@ -678,6 +699,7 @@ hud_html = """
 
                 // 11. NOTAS
                 else if (speechResult.includes("anota nota") || speechResult.includes("guarda la nota")) {
+                    emitirPitido();
                     if (modoSueno) cambiarTema('normal');
                     let notaText = speechResult.replace(/jarvis|yarbi|yarvis|jarbi|arvis/g, "").replace("anota nota", "").replace("guarda la nota", "").trim();
                     if (notaText.length > 0) {
@@ -688,24 +710,28 @@ hud_html = """
                     }
                 }
                 else if (speechResult.includes("mis notas")) {
+                    emitirPitido();
                     if (modoSueno) cambiarTema('normal');
                     let notas = obtenerNotas();
                     hablar(notas.length === 0 ? "Sin notas." : "Notas: " + notas.join(". "));
                 }
                 else if (speechResult.includes("limpiar notas")) {
+                    emitirPitido();
                     if (modoSueno) cambiarTema('normal');
                     limpiarNotas();
                     hablar("Notas borradas.");
                 }
 
-                // 12. TAREAS Y AGENDA
+                // 12. TAREAS
                 else if (speechResult.includes("eliminar tarea") || speechResult.includes("borrar tarea")) {
+                    emitirPitido();
                     if (modoSueno) cambiarTema('normal');
                     let criterio = speechResult.replace(/jarvis|yarbi|yarvis|jarbi|arvis/g, "").replace("eliminar tarea", "").replace("borrar tarea", "").trim();
                     let res = eliminarTareaUnica(criterio);
                     hablar(res.mensaje);
                 }
                 else if (speechResult.includes("agregar tarea") || speechResult.includes("añadir pendiente")) {
+                    emitirPitido();
                     if (modoSueno) cambiarTema('normal');
                     let nuevaTarea = speechResult.replace(/jarvis|yarbi|yarvis|jarbi|arvis/g, "").replace("agregar tarea", "").replace("añadir pendiente", "").trim();
                     if (nuevaTarea.length > 0) {
@@ -716,6 +742,7 @@ hud_html = """
                     }
                 }
                 else if (speechResult.includes("mis pendientes") || speechResult.includes("mis tareas")) {
+                    emitirPitido();
                     if (modoSueno) cambiarTema('normal');
                     let lista = obtenerTareas();
                     if (lista.length === 0) {
@@ -727,6 +754,7 @@ hud_html = """
                     }
                 }
                 else if (speechResult.includes("limpiar tareas")) {
+                    emitirPitido();
                     if (modoSueno) cambiarTema('normal');
                     limpiarTareas();
                     hablar("Agenda limpia.");
@@ -734,11 +762,12 @@ hud_html = """
 
                 // 13. MÚSICA YOUTUBE
                 else if (speechResult.includes("reproduce") || speechResult.includes("reproducir")) {
+                    emitirPitido();
                     if (modoSueno) cambiarTema('normal');
                     let cancion = speechResult.replace(/jarvis|yarbi|yarvis|jarbi|arvis/g, "").replace("reproduce", "").replace("reproducir", "").trim();
                     if (cancion.length > 0) {
                         hablar("Reproduciendo.");
-                        setTimeout(() => { window.open("https://www.youtube.com/results?search_query=" + encodeURIComponent(cancion), "_blank"); }, 800);
+                        window.open("https://www.youtube.com/results?search_query=" + encodeURIComponent(cancion), "_blank");
                     } else {
                         hablar("Especifique la canción.");
                     }
@@ -746,39 +775,46 @@ hud_html = """
 
                 // 14. PLATAFORMAS WEB
                 else if (speechResult.includes("pinterest")) {
+                    emitirPitido();
                     if (modoSueno) cambiarTema('normal');
                     hablar("Abriendo Pinterest.");
-                    setTimeout(() => { window.open("https://www.pinterest.com", "_blank"); }, 600);
+                    window.open("https://www.pinterest.com", "_blank");
                 }
                 else if (speechResult.includes("youtube")) {
+                    emitirPitido();
                     if (modoSueno) cambiarTema('normal');
                     hablar("Abriendo YouTube.");
-                    setTimeout(() => { window.open("https://www.youtube.com", "_blank"); }, 600);
+                    window.open("https://www.youtube.com", "_blank");
                 }
                 else if (speechResult.includes("notion")) {
+                    emitirPitido();
                     if (modoSueno) cambiarTema('normal');
                     hablar("Abriendo Notion.");
-                    setTimeout(() => { window.open("https://www.notion.so", "_blank"); }, 600);
+                    window.open("https://www.notion.so", "_blank");
                 }
                 else if (speechResult.includes("calendario")) {
+                    emitirPitido();
                     if (modoSueno) cambiarTema('normal');
                     hablar("Abriendo Calendario.");
-                    setTimeout(() => { window.open("https://calendar.google.com", "_blank"); }, 600);
+                    window.open("https://calendar.google.com", "_blank");
                 }
                 else if (speechResult.includes("canva")) {
+                    emitirPitido();
                     if (modoSueno) cambiarTema('normal');
                     hablar("Abriendo Canva.");
-                    setTimeout(() => { window.open("https://www.canva.com", "_blank"); }, 600);
+                    window.open("https://www.canva.com", "_blank");
                 }
                 else if (speechResult.includes("whatsapp")) {
+                    emitirPitido();
                     if (modoSueno) cambiarTema('normal');
                     hablar("Abriendo WhatsApp.");
-                    setTimeout(() => { window.open("https://web.whatsapp.com", "_blank"); }, 600);
+                    window.open("https://web.whatsapp.com", "_blank");
                 }
                 else if (speechResult.includes("gemini")) {
+                    emitirPitido();
                     if (modoSueno) cambiarTema('normal');
                     hablar("Abriendo Gemini.");
-                    setTimeout(() => { window.open("https://gemini.google.com", "_blank"); }, 600);
+                    window.open("https://gemini.google.com", "_blank");
                 }
             };
 
@@ -790,7 +826,7 @@ hud_html = """
 
             recognition.onerror = function(event) {
                 if (activadoPorUsuario) {
-                    setTimeout(() => { try { recognition.start(); } catch(e) {} }, 500);
+                    setTimeout(() => { try { recognition.start(); } catch(e) {} }, 300);
                 }
             };
 
@@ -808,4 +844,4 @@ hud_html = """
 """
 
 import streamlit.components.v1 as components
-components.html(hud_html, height=850, scrolling=False)
+components.html(hud_html, height=920, scrolling=False)
