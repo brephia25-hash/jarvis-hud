@@ -470,12 +470,14 @@ hud_html = """
             return data ? JSON.parse(data) : null;
         }
 
+        // Reconocimiento de Voz Persistente con Auto-Reinicio
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (SpeechRecognition) {
             const recognition = new SpeechRecognition();
             recognition.lang = 'es-ES';
             recognition.continuous = true;
             recognition.interimResults = false;
+            let activadoPorUsuario = false;
 
             recognition.onresult = async function(event) {
                 const speechResult = event.results[event.results.length - 1][0].transcript.toLowerCase().trim();
@@ -536,7 +538,7 @@ hud_html = """
                     hablar("Sistemas restaurados a interfaz estándar.");
                 }
 
-                // 7. CANCELAR O DETENER TEMPORIZADOR DE ENFOQUE (MEJORADO)
+                // 7. CANCELAR O DETENER TEMPORIZADOR DE ENFOQUE
                 else if (speechResult.includes("detener enfoque") || speechResult.includes("detén el enfoque") || speechResult.includes("deten el enfoque") || speechResult.includes("para el enfoque") || speechResult.includes("cancelar enfoque") || speechResult.includes("cancelar temporizador") || speechResult.includes("detener temporizador")) {
                     detenerTemporizadorEnfoque();
                 }
@@ -685,10 +687,24 @@ hud_html = """
                 }
             };
 
+            // REINICIO AUTOMÁTICO AL APAGARSE EL MICRÓFONO
+            recognition.onend = function() {
+                if (activadoPorUsuario) {
+                    try { recognition.start(); } catch(e) {}
+                }
+            };
+
+            recognition.onerror = function(event) {
+                if (activadoPorUsuario) {
+                    setTimeout(() => { try { recognition.start(); } catch(e) {} }, 500);
+                }
+            };
+
             window.addEventListener('click', () => {
+                activadoPorUsuario = true;
                 try {
                     recognition.start();
-                    document.getElementById('audioStatus').innerText = "🎙️ SISTEMA DE VOZ ACTIVO";
+                    document.getElementById('audioStatus').innerText = "🎙️ SISTEMA DE VOZ ACTIVO (ESCUCHA CONTINUA)";
                 } catch(e) {}
             });
         }
