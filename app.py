@@ -14,7 +14,7 @@ hide_streamlit_style = """
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
-    .stApp { background-color: #020b18; overflow: hidden; }
+    .stApp { background-color: #010a17; overflow: hidden; }
     </style>
 """
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
@@ -32,7 +32,7 @@ hud_html = """
     <meta charset="UTF-8">
     <style>
         body {
-            background-color: #020b18;
+            background-color: #010a17;
             margin: 0;
             overflow: hidden;
             display: flex;
@@ -64,35 +64,32 @@ hud_html = """
         }
         .core-text h1 {
             margin: 0;
-            font-size: 34px;
-            letter-spacing: 6px;
+            font-size: 36px;
+            letter-spacing: 7px;
             color: #ffffff;
             text-shadow: 0 0 20px #00f3ff, 0 0 40px #00f3ff;
             font-weight: 800;
-            transition: color 0.5s ease, text-shadow 0.5s ease;
         }
         .core-text p {
-            margin: 10px 0 0 0;
+            margin: 8px 0 0 0;
             font-size: 11px;
             color: #38bdf8;
             letter-spacing: 4px;
             text-transform: uppercase;
-            transition: color 0.5s ease;
         }
         .status-bar {
             position: absolute;
-            bottom: 25px;
+            bottom: 20px;
             color: #0ea5e9;
             font-size: 11px;
             letter-spacing: 3px;
             text-transform: uppercase;
-            background: rgba(2, 11, 24, 0.8);
-            padding: 8px 16px;
-            border: 1px solid #00f3ff33;
+            background: rgba(1, 10, 23, 0.85);
+            padding: 8px 18px;
+            border: 1px solid #00f3ff44;
             border-radius: 4px;
-            box-shadow: 0 0 10px rgba(0, 243, 255, 0.2);
+            box-shadow: 0 0 12px rgba(0, 243, 255, 0.25);
             cursor: pointer;
-            transition: border-color 0.5s ease, color 0.5s ease;
         }
     </style>
 </head>
@@ -125,7 +122,8 @@ hud_html = """
             primary: '#00f3ff',
             secondary: '#38bdf8',
             darkLine: '#0284c7',
-            coreGlow: 'rgba(0, 243, 255, 0.9)'
+            dimLine: 'rgba(2, 40, 80, 0.35)',
+            glow: 'rgba(0, 243, 255, 0.9)'
         };
 
         function cambiarTema(modo) {
@@ -133,17 +131,17 @@ hud_html = """
                 theme.primary = '#ff2a2a';
                 theme.secondary = '#f87171';
                 theme.darkLine = '#991b1b';
-                theme.coreGlow = 'rgba(255, 42, 42, 0.9)';
+                theme.dimLine = 'rgba(80, 10, 10, 0.35)';
+                theme.glow = 'rgba(255, 42, 42, 0.9)';
                 document.getElementById('jarvisTitle').style.textShadow = "0 0 20px #ff2a2a, 0 0 40px #ff2a2a";
-                document.getElementById('jarvisTitle').style.color = "#ffffff";
                 document.getElementById('jarvisStatus').style.color = "#f87171";
             } else {
                 theme.primary = '#00f3ff';
                 theme.secondary = '#38bdf8';
                 theme.darkLine = '#0284c7';
-                theme.coreGlow = 'rgba(0, 243, 255, 0.9)';
+                theme.dimLine = 'rgba(2, 40, 80, 0.35)';
+                theme.glow = 'rgba(0, 243, 255, 0.9)';
                 document.getElementById('jarvisTitle').style.textShadow = "0 0 20px #00f3ff, 0 0 40px #00f3ff";
-                document.getElementById('jarvisTitle').style.color = "#ffffff";
                 document.getElementById('jarvisStatus').style.color = "#38bdf8";
             }
         }
@@ -151,65 +149,113 @@ hud_html = """
         let timerInterval = null;
         let tiempoRestanteSegundos = 0;
 
-        function drawCircuitLines(cx, cy) {
+        // Dibujar fondo de placa ciberespacial tenue (PCB Background)
+        function drawBackgroundGrid() {
             ctx.save();
-            ctx.strokeStyle = theme.darkLine;
-            ctx.lineWidth = 1.5;
-            ctx.shadowBlur = 8;
-            ctx.shadowColor = theme.primary;
+            ctx.strokeStyle = theme.dimLine;
+            ctx.lineWidth = 1;
 
-            ctx.beginPath();
-            ctx.moveTo(0, cy - 100);
-            ctx.lineTo(cx - 280, cy - 100);
-            ctx.lineTo(cx - 240, cy - 60);
-            ctx.lineTo(cx - 200, cy - 60);
-            ctx.stroke();
-
-            ctx.beginPath();
-            ctx.moveTo(0, cy + 120);
-            ctx.lineTo(cx - 320, cy + 120);
-            ctx.lineTo(cx - 260, cy + 60);
-            ctx.lineTo(cx - 210, cy + 60);
-            ctx.stroke();
-
-            drawTargetNode(80, cy - 180);
-            drawTargetNode(80, cy + 180);
-
-            ctx.beginPath();
-            ctx.moveTo(canvas.width, cy - 120);
-            ctx.lineTo(cx + 280, cy - 120);
-            ctx.lineTo(cx + 230, cy - 70);
-            ctx.lineTo(cx + 200, cy - 70);
-            ctx.stroke();
-
-            ctx.beginPath();
-            ctx.moveTo(canvas.width, cy + 100);
-            ctx.lineTo(cx + 310, cy + 100);
-            ctx.lineTo(cx + 250, cy + 50);
-            ctx.lineTo(cx + 210, cy + 50);
-            ctx.stroke();
-
-            drawTargetNode(canvas.width - 80, cy - 180);
-            drawTargetNode(canvas.width - 80, cy + 180);
-
+            // Rejilla de pistas verticales y horizontales finas
+            for(let x = 0; x < canvas.width; x += 40) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height);
+                ctx.stroke();
+            }
+            for(let y = 0; y < canvas.height; y += 40) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+            }
             ctx.restore();
         }
 
-        function drawTargetNode(x, y) {
+        function drawNodeDot(x, y, radius = 4) {
             ctx.beginPath();
-            ctx.arc(x, y, 22, 0, Math.PI * 2);
-            ctx.strokeStyle = theme.primary;
-            ctx.stroke();
-
-            ctx.beginPath();
-            ctx.arc(x, y, 14, 0, Math.PI * 2);
-            ctx.strokeStyle = theme.secondary;
-            ctx.stroke();
-
-            ctx.beginPath();
-            ctx.arc(x, y, 4, 0, Math.PI * 2);
+            ctx.arc(x, y, radius, 0, Math.PI * 2);
             ctx.fillStyle = theme.primary;
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = theme.primary;
             ctx.fill();
+        }
+
+        function drawTargetNode(x, y, size = 26) {
+            ctx.save();
+            ctx.strokeStyle = theme.primary;
+            ctx.lineWidth = 1.8;
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = theme.primary;
+
+            ctx.beginPath(); ctx.arc(x, y, size, 0, Math.PI * 2); ctx.stroke();
+            ctx.beginPath(); ctx.arc(x, y, size * 0.65, 0, Math.PI * 2); ctx.strokeStyle = theme.secondary; ctx.stroke();
+            ctx.beginPath(); ctx.arc(x, y, size * 0.3, 0, Math.PI * 2); ctx.stroke();
+            ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI * 2); ctx.fillStyle = theme.primary; ctx.fill();
+            ctx.restore();
+        }
+
+        function drawPCB(cx, cy) {
+            ctx.save();
+            ctx.strokeStyle = theme.darkLine;
+            ctx.lineWidth = 2;
+            ctx.shadowBlur = 8;
+            ctx.shadowColor = theme.primary;
+
+            // --- PISTAS IZQUIERDA ---
+            let lY1 = cy - 190;
+            ctx.beginPath(); ctx.moveTo(0, lY1); ctx.lineTo(cx - 380, lY1); ctx.lineTo(cx - 320, lY1 + 60); ctx.lineTo(cx - 230, lY1 + 60); ctx.stroke();
+            drawNodeDot(cx - 380, lY1); drawNodeDot(cx - 230, lY1 + 60);
+
+            let lY2 = cy - 90;
+            ctx.beginPath(); ctx.moveTo(0, lY2); ctx.lineTo(cx - 340, lY2); ctx.lineTo(cx - 280, lY2 + 30); ctx.lineTo(cx - 220, lY2 + 30); ctx.stroke();
+            drawNodeDot(cx - 340, lY2); drawNodeDot(cx - 220, lY2 + 30);
+
+            let lY3 = cy + 120;
+            ctx.beginPath(); ctx.moveTo(0, lY3); ctx.lineTo(cx - 400, lY3); ctx.lineTo(cx - 330, lY3 - 50); ctx.lineTo(cx - 230, lY3 - 50); ctx.stroke();
+            drawNodeDot(cx - 400, lY3); drawNodeDot(cx - 230, lY3 - 50);
+
+            let lY4 = cy + 210;
+            ctx.beginPath(); ctx.moveTo(0, lY4); ctx.lineTo(cx - 300, lY4); ctx.lineTo(cx - 250, lY4 - 40); ctx.lineTo(cx - 210, lY4 - 40); ctx.stroke();
+
+            // Módulos geométricos izquierda
+            ctx.strokeStyle = theme.secondary;
+            ctx.strokeRect(50, cy - 230, 120, 48);
+            ctx.strokeRect(65, cy - 220, 40, 28);
+            drawTargetNode(80, cy + 190, 26);
+
+            // --- PISTAS DERECHA ---
+            let rY1 = cy - 200;
+            ctx.beginPath(); ctx.moveTo(canvas.width, rY1); ctx.lineTo(cx + 400, rY1); ctx.lineTo(cx + 330, rY1 + 60); ctx.lineTo(cx + 230, rY1 + 60); ctx.stroke();
+            drawNodeDot(cx + 400, rY1); drawNodeDot(cx + 230, rY1 + 60);
+
+            let rY2 = cy - 60;
+            ctx.beginPath(); ctx.moveTo(canvas.width, rY2); ctx.lineTo(cx + 350, rY2); ctx.lineTo(cx + 290, rY2 - 30); ctx.lineTo(cx + 230, rY2 - 30); ctx.stroke();
+            drawNodeDot(cx + 350, rY2);
+
+            let rY3 = cy + 140;
+            ctx.beginPath(); ctx.moveTo(canvas.width, rY3); ctx.lineTo(cx + 380, rY3); ctx.lineTo(cx + 310, rY3 - 60); ctx.lineTo(cx + 220, rY3 - 60); ctx.stroke();
+            drawNodeDot(cx + 380, rY3); drawNodeDot(cx + 220, rY3 - 60);
+
+            drawTargetNode(canvas.width - 90, cy - 200, 26);
+
+            // Chip de 4 Barras Verticales
+            ctx.strokeStyle = theme.primary;
+            ctx.strokeRect(cx + 290, cy + 20, 75, 95);
+            for(let i = 0; i < 4; i++) {
+                ctx.fillStyle = theme.primary;
+                ctx.fillRect(cx + 304 + (i * 13), cy + 35, 6, 65);
+            }
+
+            // Rayo de luz horizontal centrado
+            let grad = ctx.createLinearGradient(cx - 320, cy, cx + 320, cy);
+            grad.addColorStop(0, 'transparent');
+            grad.addColorStop(0.5, theme.primary);
+            grad.addColorStop(1, 'transparent');
+            ctx.strokeStyle = grad;
+            ctx.lineWidth = 1.5;
+            ctx.beginPath(); ctx.moveTo(cx - 320, cy); ctx.lineTo(cx + 320, cy); ctx.stroke();
+
+            ctx.restore();
         }
 
         function drawHUD() {
@@ -217,82 +263,101 @@ hud_html = """
             let cx = canvas.width / 2;
             let cy = canvas.height / 2;
 
-            drawCircuitLines(cx, cy);
+            drawBackgroundGrid();
+            drawPCB(cx, cy);
 
-            angleMain += 0.005;
-            angleInner -= 0.008;
-            angleOuter += 0.003;
+            angleMain += 0.004;
+            angleInner -= 0.006;
+            angleOuter += 0.002;
 
+            // 1. Anillo Exterior Principal
             ctx.save();
             ctx.translate(cx, cy);
             ctx.rotate(angleOuter);
             ctx.strokeStyle = theme.primary;
-            ctx.lineWidth = 2.5;
-            ctx.shadowBlur = 12;
+            ctx.lineWidth = 3;
+            ctx.shadowBlur = 15;
             ctx.shadowColor = theme.primary;
 
-            ctx.beginPath();
-            ctx.arc(0, 0, 220, 0, Math.PI * 1.4);
-            ctx.stroke();
-
-            ctx.beginPath();
-            ctx.arc(0, 0, 220, Math.PI * 1.5, Math.PI * 1.9);
-            ctx.stroke();
+            ctx.beginPath(); ctx.arc(0, 0, 235, 0, Math.PI * 1.35); ctx.stroke();
+            ctx.beginPath(); ctx.arc(0, 0, 235, Math.PI * 1.45, Math.PI * 1.85); ctx.stroke();
             ctx.restore();
 
+            // 2. Anillo de Puntos Cuadrados
+            ctx.save();
+            ctx.translate(cx, cy);
+            ctx.rotate(-angleOuter * 1.5);
+            ctx.fillStyle = theme.secondary;
+            for (let i = 0; i < 18; i++) {
+                let angle = (i * 7.5) * Math.PI / 180 + Math.PI * 0.2;
+                let x = Math.cos(angle) * 215;
+                let y = Math.sin(angle) * 215;
+                ctx.fillRect(x, y, 4, 4);
+            }
+            ctx.restore();
+
+            // 3. Escala Graduada (Ticks estilo regla)
             ctx.save();
             ctx.translate(cx, cy);
             ctx.rotate(angleInner);
             ctx.strokeStyle = theme.secondary;
             ctx.lineWidth = 1.5;
-            for (let i = 0; i < 72; i++) {
+            for (let i = 0; i < 90; i++) {
                 ctx.beginPath();
-                let angle = (i * 5) * Math.PI / 180;
-                let len = (i % 6 === 0) ? 10 : 5;
-                let x1 = Math.cos(angle) * 190;
-                let y1 = Math.sin(angle) * 190;
-                let x2 = Math.cos(angle) * (190 - len);
-                let y2 = Math.sin(angle) * (190 - len);
-                ctx.moveTo(x1, y1);
-                ctx.lineTo(x2, y2);
-                ctx.stroke();
+                let angle = (i * 4) * Math.PI / 180;
+                let len = (i % 5 === 0) ? 12 : 6;
+                let x1 = Math.cos(angle) * 195;
+                let y1 = Math.sin(angle) * 195;
+                let x2 = Math.cos(angle) * (195 - len);
+                let y2 = Math.sin(angle) * (195 - len);
+                ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
             }
             ctx.restore();
 
+            // 4. Bloques Radiales Curvos
             ctx.save();
             ctx.translate(cx, cy);
-            ctx.rotate(angleMain);
+            ctx.rotate(angleMain * 0.8);
             ctx.fillStyle = theme.primary;
-            for (let i = 0; i < 30; i++) {
-                let angle = (i * 4) * Math.PI / 180 + Math.PI;
-                let x = Math.cos(angle) * 165;
-                let y = Math.sin(angle) * 165;
-                ctx.fillRect(x, y, 4, 8);
+            for (let i = 0; i < 24; i++) {
+                let angle = (i * 3.5) * Math.PI / 180 + Math.PI * 0.75;
+                let x = Math.cos(angle) * 172;
+                let y = Math.sin(angle) * 172;
+                ctx.fillRect(x, y, 5, 10);
             }
             ctx.restore();
 
+            // 5. Cadenas de Ceros "0000000000"
             ctx.save();
             ctx.translate(cx, cy);
-            ctx.rotate(-angleMain * 1.2);
+            ctx.rotate(-angleMain * 0.5);
             ctx.fillStyle = theme.secondary;
-            ctx.font = '10px Consolas';
-            let textoCeros = "0000000000000000";
-            for (let i = 0; i < textoCeros.length; i++) {
-                let angle = (i * 12) * Math.PI / 180 - Math.PI / 2;
-                let x = Math.cos(angle) * 145;
-                let y = Math.sin(angle) * 145;
-                ctx.fillText(textoCeros[i], x, y);
+            ctx.font = '11px Consolas, monospace';
+            let zerosUpper = "0000000000";
+            for (let i = 0; i < zerosUpper.length; i++) {
+                let angle = (i * 6) * Math.PI / 180 - Math.PI * 0.4;
+                let x = Math.cos(angle) * 152;
+                let y = Math.sin(angle) * 152;
+                ctx.fillText(zerosUpper[i], x, y);
+            }
+            let zerosLower = "0000000000000";
+            for (let i = 0; i < zerosLower.length; i++) {
+                let angle = (i * 6) * Math.PI / 180 + Math.PI * 0.6;
+                let x = Math.cos(angle) * 152;
+                let y = Math.sin(angle) * 152;
+                ctx.fillText(zerosLower[i], x, y);
             }
             ctx.restore();
 
+            // 6. Núcleo Interno
             ctx.save();
             ctx.beginPath();
-            ctx.arc(cx, cy, 110, 0, Math.PI * 2);
-            ctx.fillStyle = 'rgba(2, 11, 24, 0.95)';
+            ctx.arc(cx, cy, 118, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(1, 10, 23, 0.95)';
             ctx.fill();
             ctx.strokeStyle = theme.primary;
-            ctx.lineWidth = 3;
-            ctx.shadowBlur = 15;
+            ctx.lineWidth = 3.5;
+            ctx.shadowBlur = 20;
             ctx.shadowColor = theme.primary;
             ctx.stroke();
             ctx.restore();
