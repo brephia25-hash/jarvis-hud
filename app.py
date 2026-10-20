@@ -533,7 +533,7 @@ hud_html = """
                 else if (speechResult.includes("qué puedes hacer") || speechResult.includes("que puedes hacer") || speechResult.includes("cuáles son tus funciones") || speechResult.includes("cuales son tus funciones") || speechResult.includes("lista de comandos") || speechResult.includes("manual de funciones")) {
                     if (modoSueno) cambiarTema('normal');
                     document.getElementById('jarvisStatus').innerText = "MODO MANUAL";
-                    hablar("Sistemas principales activos. Puedo: uno, registrar tu hora de despertar y descanso. Dos, gestionar tu agenda de tareas y bloc de notas. Tres, iniciar sesiones de enfoque con temporizador. Cuatro, reproducir música en YouTube. Cinco, cambiar a modo sigilo. Seis, abrir plataformas como Notion, Canva, WhatsApp, Pinterest o Gemini. Y siete, realizar búsquedas directas en Google por voz.");
+                    hablar("Sistemas principales activos. Puedo: uno, registrar tu hora de despertar y descanso. Dos, gestionar tu agenda de tareas y bloc de notas. Tres, iniciar sesiones de enfoque con temporizador. Cuatro, reproducir música en YouTube. Cinco, cambiar a modo sigilo. Seis, abrir plataformas muy usadas diariamente. Y siete, realizar búsquedas directas en Google por voz.");
                 }
 
                 // 6. BÚSQUEDA DIRECTA EN GOOGLE
