@@ -105,6 +105,69 @@ hud_html = """
             text-shadow: 0 0 8px #00f3ff; margin-bottom: 2px;
         }
         .diagnostic-panel .sys-info { font-size: 10px; color: #38bdf8; }
+
+        #windowsLayer {
+            position: absolute; top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            pointer-events: none;
+            z-index: 25;
+        }
+        .hud-window {
+            position: absolute;
+            background: rgba(1, 15, 35, 0.9);
+            border: 1.5px solid #00f3ff;
+            border-radius: 6px;
+            padding: 15px 20px 15px 25px;
+            color: #00f3ff;
+            font-size: 12px;
+            letter-spacing: 1.5px;
+            box-shadow: 0 0 20px rgba(0, 243, 255, 0.3), inset 0 0 10px rgba(0, 243, 255, 0.15);
+            pointer-events: auto;
+            backdrop-filter: blur(4px);
+            animation: fadeInWindow 0.4s ease forwards;
+            min-width: 280px;
+            max-width: 350px;
+        }
+        @keyframes fadeInWindow {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .hud-window .close-btn {
+            position: absolute;
+            top: 6px;
+            left: 8px;
+            color: #ff2a2a;
+            border: 1px solid #ff2a2a55;
+            background: rgba(50, 0, 0, 0.5);
+            width: 18px; height: 18px;
+            font-size: 11px;
+            font-weight: bold;
+            display: flex; justify-content: center; align-items: center;
+            border-radius: 3px;
+            cursor: pointer;
+            box-shadow: 0 0 5px rgba(255, 42, 42, 0.4);
+            transition: background 0.2s;
+        }
+        .hud-window .close-btn:hover {
+            background: rgba(255, 42, 42, 0.8);
+            color: #ffffff;
+        }
+        .hud-window h3 {
+            margin: 0 0 8px 0;
+            font-size: 13px;
+            color: #ffffff;
+            border-bottom: 1px dashed #00f3ff55;
+            padding-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-align: right;
+        }
+        .hud-window ul {
+            margin: 0; padding-left: 15px; color: #38bdf8;
+        }
+        .hud-window li {
+            margin-bottom: 4px;
+        }
     </style>
 </head>
 <body>
@@ -120,6 +183,7 @@ hud_html = """
             <div class="sys-info" id="modeInfo">MODO: ESTÁNDAR</div>
         </div>
         <div class="status-bar" id="audioStatus" onclick="toggleEscuchaManual()">⚡ HAZ CLIC PARA ACTIVAR CONTROL DE VOZ</div>
+        <div id="windowsLayer"></div>
     </div>
 
     <script>
@@ -138,6 +202,75 @@ hud_html = """
         let recognition = null;
         let controlVozActivo = false;
         let modoCineActivo = false;
+        let activeWindows = [];
+
+        // BASE DE DATOS ACADÉMICA PERSISTENTE EN LOCALSTORAGE
+        let baseDatosAcademica = JSON.parse(localStorage.getItem('jarvis_db_academica') || JSON.stringify({
+            "lunes": {
+                titulo: "HORARIO: LUNES",
+                items: [
+                    "Matemáticas: 1:00 PM a 2:00 PM",
+                    "Francés: 2:05 PM a 3:30 PM",
+                    "FSN: 3:35 PM a 4:00 PM",
+                    "GHC: 4:05 PM a 5:30 PM"
+                ]
+            },
+            "frances": {
+                titulo: "MATERIA: FRANCÉS",
+                items: [
+                    "Notas: 16 - 20 (Promedio: 18)",
+                    "Profesor: María Pérez",
+                    "Dificultad: Exigente con ilustraciones y formato de cuaderno"
+                ]
+            }
+        }));
+
+        function guardarDB() {
+            localStorage.setItem('jarvis_db_academica', JSON.stringify(baseDatosAcademica));
+        }
+
+        function crearVentanaFlotante(contenidoHTML, tituloVentana = "REGISTRO HUD") {
+            const layer = document.getElementById('windowsLayer');
+            
+            if (activeWindows.length >= 5) {
+                const oldestId = activeWindows.shift();
+                const oldEl = document.getElementById(oldestId);
+                if (oldEl) oldEl.remove();
+            }
+
+            const winId = 'hud_win_' + Date.now() + '_' + Math.floor(Math.random()*1000);
+            activeWindows.push(winId);
+
+            const posX = Math.floor(Math.random() * (window.innerWidth - 400 - 100)) + 50;
+            const posY = Math.floor(Math.random() * (window.innerHeight - 300 - 100)) + 80;
+
+            const winDiv = document.createElement('div');
+            winDiv.className = 'hud-window';
+            winDiv.id = winId;
+            winDiv.style.left = posX + 'px';
+            winDiv.style.top = posY + 'px';
+
+            winDiv.innerHTML = `
+                <div class="close-btn" onclick="cerrarVentana('${winId}')" title="Cerrar ventana">X</div>
+                <h3>${tituloVentana}</h3>
+                <div>${contenidoHTML}</div>
+            `;
+
+            layer.appendChild(winDiv);
+        }
+
+        function cerrarVentana(winId) {
+            const el = document.getElementById(winId);
+            if (el) {
+                el.remove();
+                activeWindows = activeWindows.filter(id => id !== winId);
+            }
+        }
+
+        function mostrarPaginaCincoVacia(queryText) {
+            let html = `<ul><li>Sin información registrada sobre "${queryText}".</li><li>Sin informacion actual.</li></ul>`;
+            crearVentanaFlotante(html, "AVISO: SIN DATOS (PÁG 5)");
+        }
 
         setInterval(() => {
             const now = new Date();
@@ -223,9 +356,9 @@ hud_html = """
         function activarModoCine() {
             modoCineActivo = true;
             document.body.style.backgroundColor = "#000000";
-            canvas.style.opacity = "0"; // Apaga por completo las líneas vectoriales
+            canvas.style.opacity = "0";
             document.getElementById('coreTextBox').style.opacity = "0";
-            document.getElementById('diagPanel').style.opacity = "0.15"; // Reloj tenue
+            document.getElementById('diagPanel').style.opacity = "0.15";
             document.getElementById('audioStatus').style.opacity = "0.3";
             document.getElementById('modeInfo').innerText = "MODO: CINE";
         }
@@ -449,8 +582,93 @@ hud_html = """
                     }
                 }
 
-                // 1. CONSULTA DE HORARIO DE DESCANSO / DESPERTAR
-                if (speechResult.includes("a qué hora me dormí") || speechResult.includes("a que hora me dormi") || speechResult.includes("hora de dormir")) {
+                // 1. EDICIÓN POR VOZ: ELIMINAR / REEMPLAZAR POR "Sin informacion actual"
+                if (speechResult.includes("elimina") || speechResult.includes("quita")) {
+                    emitirPitido();
+                    let modificado = false;
+                    for (let clave in baseDatosAcademica) {
+                        if (speechResult.includes(clave)) {
+                            baseDatosAcademica[clave].items = baseDatosAcademica[clave].items.map(item => {
+                                let partes = speechResult.replace("elimina", "").replace("quita", "").replace("del", "").replace("de la materia", "").replace(clave, "").trim().split(" ");
+                                let coincide = partes.some(p => p.length > 2 && item.toLowerCase().includes(p));
+                                if (coincide) {
+                                    modificado = true;
+                                    return "Sin informacion actual";
+                                }
+                                return item;
+                            });
+                        }
+                    }
+                    if (modificado) {
+                        guardarDB();
+                        hablar("Elemento eliminado y actualizado con la leyenda sin información actual, Señor.");
+                    } else {
+                        hablar("No logré identificar qué elemento exacto desea eliminar de los registros, Señor.");
+                    }
+                }
+
+                // 2. EDICIÓN POR VOZ: AGREGAR NUEVA INFORMACIÓN
+                else if (speechResult.includes("agrega") || speechResult.includes("añade") || speechResult.includes("registra")) {
+                    emitirPitido();
+                    if (speechResult.includes("horario del") || speechResult.includes("horario de")) {
+                        let partesDia = speechResult.split(/horario del|horario de/);
+                        if (partesDia.length > 1) {
+                            let resto = partesDia[1].trim();
+                            let palabrasResto = resto.split(" ");
+                            let diaNom = palabrasResto[0];
+                            let contenidoNuevo = resto.replace(diaNom, "").trim();
+                            
+                            if (!baseDatosAcademica[diaNom]) {
+                                baseDatosAcademica[diaNom] = { titulo: "HORARIO: " + diaNom.toUpperCase(), items: [] };
+                            }
+                            baseDatosAcademica[diaNom].items.push(contenidoNuevo);
+                            guardarDB();
+                            hablar("He registrado y añadido la nueva información al horario del " + diaNom + ", Señor.");
+                        }
+                    } else if (speechResult.includes("materia")) {
+                        let partesMat = speechResult.split(/materia/);
+                        if (partesMat.length > 1) {
+                            let resto = partesMat[1].trim();
+                            let palabrasResto = resto.split(" ");
+                            let matNom = palabrasResto[0];
+                            let contenidoNuevo = resto.replace(matNom, "").trim();
+
+                            if (!baseDatosAcademica[matNom]) {
+                                baseDatosAcademica[matNom] = { titulo: "MATERIA: " + matNom.toUpperCase(), items: [] };
+                            }
+                            baseDatosAcademica[matNom].items.push(contenidoNuevo);
+                            guardarDB();
+                            hablar("He registrado y añadido la nueva información para la materia " + matNom + ", Señor.");
+                        }
+                    } else {
+                        hablar("Por favor especifique si desea agregarlo a un horario o a una materia, Señor.");
+                    }
+                }
+
+                // 3. CONSULTA DE HORARIO / DATOS ACADÉMICOS (VENTANAS FLOTANTES O PÁG 5)
+                else if (speechResult.includes("mostrar horario") || speechResult.includes("horario de") || speechResult.includes("materia")) {
+                    emitirPitido();
+                    if (modoSueno || modoCineActivo) cambiarTema('normal');
+                    
+                    let encontrado = false;
+                    for (let clave in baseDatosAcademica) {
+                        if (speechResult.includes(clave)) {
+                            encontrado = true;
+                            let datos = baseDatosAcademica[clave];
+                            let listHtml = "<ul>" + datos.items.map(i => `<li>${i}</li>`).join('') + "</ul>";
+                            crearVentanaFlotante(listHtml, datos.titulo);
+                            hablar("Mostrando en pantalla el registro correspondiente a " + clave + ", Señor.");
+                            break;
+                        }
+                    }
+                    if (!encontrado) {
+                        mostrarPaginaCincoVacia(speechResult);
+                        hablar("No hay información registrada para esa solicitud, Señor.");
+                    }
+                }
+
+                // 4. CONSULTA DE HORARIO DE DESCANSO / DESPERTAR
+                else if (speechResult.includes("a qué hora me dormí") || speechResult.includes("a que hora me dormi") || speechResult.includes("hora de dormir")) {
                     emitirPitido();
                     if (modoSueno || modoCineActivo) cambiarTema('normal');
                     let reg = obtenerMomento('dormir');
@@ -463,7 +681,7 @@ hud_html = """
                     hablar(reg ? "Revisando bitácora... Su jornada dio inicio a las " + reg.hora + ", Señor. Todos los sistemas están óptimos." : "No se encontró un registro formal de inicio de jornada en la memoria, Señor.");
                 }
 
-                // 2. GESTIÓN DE RECORDATORIOS
+                // 5. GESTIÓN DE RECORDATORIOS
                 else if (speechResult.includes("ver recordatorios") || speechResult.includes("mis recordatorios") || speechResult.includes("cuáles son mis recordatorios")) {
                     emitirPitido();
                     if (recordatorios.length === 0) { hablar("Actualmente no tiene ningún recordatorio pendiente almacenado en el sistema, Señor."); }
@@ -512,7 +730,7 @@ hud_html = """
                     } else { hablar("Por favor especifique claramente la hora y el mensaje correspondiente para el recordatorio, Señor."); }
                 }
 
-                // 3. PERSONALIDAD Y DIÁLOGOS
+                // 6. PERSONALIDAD Y DIÁLOGOS
                 else if (speechResult.includes("cansado") || speechResult.includes("cansada") || speechResult.includes("agotado")) {
                     emitirPitido();
                     document.getElementById('jarvisStatus').innerText = "ATENCIÓN PERSONAL";
@@ -534,7 +752,7 @@ hud_html = """
                     hablar("Todos mis núcleos y sistemas operativos operan al cien por ciento de su capacidad analítica, listos y a su entera disposición, Señor.");
                 }
 
-                // 4. PLATAFORMAS WEB
+                // 7. PLATAFORMAS WEB
                 else if (speechResult.includes("gemini") || speechResult.includes("gémini") || speechResult.includes("geminis")) {
                     emitirPitido(); if (modoSueno || modoCineActivo) cambiarTema('normal');
                     document.getElementById('jarvisStatus').innerText = "ABRIENDO GEMINI";
@@ -578,7 +796,7 @@ hud_html = """
                     window.open("https://web.whatsapp.com", "_blank");
                 }
 
-                // 5. CONTROL GENERAL Y MODOS NUEVOS (MODO CINE / BÚSQUEDA DIRECTA)
+                // 8. CONTROL GENERAL Y MODOS NUEVOS
                 else if (speechResult.includes("modo cine") || speechResult.includes("apagar hud")) {
                     emitirPitido(); activarModoCine(); hablar("Modo cine activado. Pantalla oscurecida y líneas del HUD ocultas para máxima concentración visual, Señor.");
                 }
@@ -602,7 +820,7 @@ hud_html = """
                 }
                 else if (speechResult.includes("qué puedes hacer") || speechResult.includes("que puedes hacer") || speechResult.includes("lista de comandos")) {
                     emitirPitido(); if (modoSueno || modoCineActivo) cambiarTema('normal'); document.getElementById('jarvisStatus').innerText = "MODO MANUAL";
-                    hablar("Sistemas plenamente activos. Puedo gestionar recordatorios, modo cine, búsqueda web directa, tareas, notas, temporizadores y plataformas web.");
+                    hablar("Sistemas plenamente activos. Puedo gestionar recordatorios, ventanas flotantes académicas con edición por voz, modo cine, búsqueda web directa, tareas, notas y plataformas web.");
                 }
                 else if (speechResult.includes("busca") || speechResult.includes("buscar")) {
                     emitirPitido(); if (modoSueno || modoCineActivo) cambiarTema('normal');
